@@ -1,0 +1,117 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Per-chain deploy context",
+  "type": "object",
+  "required": [
+    "chain_id",
+    "ipor_abi_deployment",
+    "fusion_factory",
+    "price_oracle_middleware",
+    "fuse_whitelist",
+    "price_feed_factories",
+    "fuses"
+  ],
+  "properties": {
+    "chain_id": {
+      "type": "integer"
+    },
+    "ipor_abi_deployment": {
+      "type": "string"
+    },
+    "snapshot_block": {
+      "type": [
+        "integer",
+        "null"
+      ]
+    },
+    "fusion_factory": {
+      "type": "string",
+      "pattern": "^0x[a-fA-F0-9]{40}$"
+    },
+    "price_oracle_middleware": {
+      "type": "string",
+      "pattern": "^0x[a-fA-F0-9]{40}$"
+    },
+    "fuse_whitelist": {
+      "description": "On-chain FuseWhitelist proxy \u2014 the authority for fuse availability; the deployer gates addFuses on it (deploy/whitelist.py).",
+      "type": "string",
+      "pattern": "^0x[a-fA-F0-9]{40}$"
+    },
+    "price_feed_factories": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string",
+        "pattern": "^0x[a-fA-F0-9]{40}$"
+      }
+    },
+    "fuses": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string",
+        "pattern": "^0x[a-fA-F0-9]{40}$"
+      }
+    },
+    "standard_fuses": {
+      "description": "Fuses the FusionFactory injects into every vault (e.g. BurnRequestFeeFuse). Always present on-chain, never declared in a strategy JSON; the verifier treats them as expected.",
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^0x[a-fA-F0-9]{40}$"
+      }
+    },
+    "pre_hooks": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string",
+        "pattern": "^0x[a-fA-F0-9]{40}$"
+      }
+    },
+    "markets": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "integer"
+      }
+    },
+    "morpho_blue": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "aave_v3_pool": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "tokens": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string",
+        "pattern": "^0x[a-fA-F0-9]{40}$"
+      }
+    },
+    "morpho_oracles": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string",
+        "pattern": "^0x[a-fA-F0-9]{40}$"
+      }
+    },
+    "public_rpc": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Public read-only RPC used for dry-runs when RPC_URL is unset. Never used for a broadcast."
+    },
+    "middleware_owner": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "pattern": "^0x[a-fA-F0-9]{40}$",
+      "description": "Holder of the manager role on the shared PriceOracleMiddleware. Only used to impersonate on an anvil fork when a feed must be registered on the shared middleware; never on a live chain."
+    }
+  }
+}

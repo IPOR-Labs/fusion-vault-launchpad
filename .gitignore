@@ -1,0 +1,9 @@
+.env
+.env.local
+.env.*.local
+.deploy-state/
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.DS_Store

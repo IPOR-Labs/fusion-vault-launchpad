@@ -1,0 +1,253 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "PlasmaVault strategy spec",
+  "type": "object",
+  "required": ["meta", "chain", "vault", "roles", "fuses", "balance_fuses", "substrates", "price_feeds", "withdraw_manager", "fees", "instant_withdrawal", "rewards", "whitelist", "transferability", "execution"],
+  "properties": {
+    "$schema": {"type": "string"},
+    "meta": {
+      "type": "object",
+      "required": ["name", "client", "spec_version", "status"],
+      "properties": {
+        "name": {"type": "string", "pattern": "^[a-z0-9-]+$"},
+        "client": {"type": "string"},
+        "contact": {"type": "string"},
+        "spec_version": {"type": "string"},
+        "spec_source": {"type": "string"},
+        "status": {"type": "string", "enum": ["DRAFT", "READY-FOR-REVIEW", "APPROVED", "SHIPPED"]}
+      }
+    },
+    "chain": {
+      "type": "object",
+      "required": ["id", "context"],
+      "properties": {
+        "id": {"type": "integer", "minimum": 1},
+        "context": {"type": "string"}
+      }
+    },
+    "vault": {
+      "type": "object",
+      "required": ["name", "symbol", "underlying", "decimals", "redemption_delay_seconds", "dao_fee_package_index"],
+      "properties": {
+        "name": {"type": "string"},
+        "symbol": {"type": "string", "maxLength": 11},
+        "underlying": {"type": "string", "pattern": "^0x[a-fA-F0-9]{40}$"},
+        "decimals": {"type": "integer"},
+        "total_supply_cap": {"type": ["string", "null"], "description": "Raw cap in SHARE units (underlying decimals + offset). Escape hatch; prefer total_supply_cap_underlying."},
+        "total_supply_cap_underlying": {"type": ["string", "null"], "description": "Cap as a human amount of the underlying (e.g. '10' for 10 cbBTC). Converted to raw share units at deploy via the vault's own decimals() — decimals-safe."},
+        "redemption_delay_seconds": {"type": "integer", "minimum": 0},
+        "dao_fee_package_index": {"type": "integer", "minimum": 0},
+        "initial_owner_override": {"type": ["string", "null"], "pattern": "^0x[a-fA-F0-9]{40}$", "description": "The appointed (final) OWNER of the vault. Granted OWNER_ROLE via roles.grants. If null, the deployer is the appointed owner."},
+        "deployer_temporary_owner": {"type": ["boolean", "null"], "description": "Ownership model at bootstrap. true (Mode A): clone under the DEPLOYER so it holds a TEMPORARY OWNER_ROLE alongside the appointed owner — the agent can then configure AND harden the vault to production autonomously, renouncing its own OWNER at the end of hardening. false/null (Mode B): clone under the appointed owner only; no temporary deployer owner, so hardening is a manual (owner-signed) process."}
+      }
+    },
+    "roles": {
+      "type": "object",
+      "required": ["execution_delay_seconds", "grants"],
+      "properties": {
+        "execution_delay_seconds": {"type": "integer", "minimum": 0},
+        "grants": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["role", "account"],
+            "properties": {
+              "role": {
+                "type": "string",
+                "enum": [
+                  "ADMIN_ROLE", "OWNER_ROLE", "GUARDIAN_ROLE", "IPOR_DAO_ROLE",
+                  "ATOMIST_ROLE", "ALPHA_ROLE", "FUSE_MANAGER_ROLE",
+                  "PRE_HOOKS_MANAGER_ROLE",
+                  "TECH_PERFORMANCE_FEE_MANAGER_ROLE", "TECH_MANAGEMENT_FEE_MANAGER_ROLE",
+                  "CLAIM_REWARDS_ROLE", "TRANSFER_REWARDS_ROLE",
+                  "WHITELIST_ROLE",
+                  "CONFIG_INSTANT_WITHDRAWAL_FUSES_ROLE",
+                  "WITHDRAW_MANAGER_REQUEST_FEE_ROLE", "WITHDRAW_MANAGER_WITHDRAW_FEE_ROLE",
+                  "UPDATE_MARKETS_BALANCES_ROLE", "UPDATE_REWARDS_BALANCE_ROLE",
+                  "PRICE_ORACLE_MIDDLEWARE_MANAGER_ROLE"
+                ]
+              },
+              "account": {"type": "string", "pattern": "^0x[a-fA-F0-9]{40}$"},
+              "execution_delay_seconds": {"type": ["integer", "null"], "minimum": 0}
+            }
+          }
+        }
+      }
+    },
+    "fuses": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name"],
+        "properties": {
+          "name": {"type": "string"}
+        }
+      }
+    },
+    "balance_fuses": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["market", "fuse"],
+        "properties": {
+          "market": {"type": "string"},
+          "fuse": {"type": "string"}
+        }
+      }
+    },
+    "substrates": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["market", "encoding", "values"],
+        "properties": {
+          "market": {"type": "string"},
+          "encoding": {
+            "type": "string",
+            "enum": ["morpho_market_id", "address", "odos_substrate", "universal_typed_substrate", "universal_selector_substrate", "raw_bytes32", "euler_substrate", "aave_v4_substrate"]
+          },
+          "values": {"type": "array"}
+        }
+      }
+    },
+    "dependency_graph": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["from", "to"],
+        "properties": {
+          "from": {"type": "string"},
+          "to": {"type": "array", "items": {"type": "string"}}
+        }
+      }
+    },
+    "market_limits": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["market", "limit"],
+        "properties": {
+          "market": {"type": "string"},
+          "limit": {"type": "string"}
+        }
+      }
+    },
+    "price_feeds": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["asset", "feed_type"],
+        "properties": {
+          "asset": {"type": "string", "pattern": "^0x[a-fA-F0-9]{40}$"},
+          "feed_type": {
+            "type": "string",
+            "enum": [
+              "prebuilt",
+              "literal",
+              "DualCrossReferencePriceFeedFactory",
+              "CollateralTokenOnMorphoMarketPriceFeedFactory",
+              "ERC4626PriceFeedFactory"
+            ]
+          },
+          "feed": {"type": ["string", "null"]},
+          "params": {"type": ["object", "null"]}
+        }
+      }
+    },
+    "withdraw_manager": {
+      "type": "object",
+      "required": ["window_seconds"],
+      "properties": {
+        "window_seconds": {"type": "integer", "minimum": 0},
+        "request_fee_bps": {"type": ["integer", "null"]},
+        "withdraw_fee_bps": {"type": ["integer", "null"]},
+        "fees_managed_by": {"type": ["string", "null"]}
+      }
+    },
+    "fees": {
+      "type": "object",
+      "required": ["tier", "performance_bps", "management_supplemental_bps", "performance_supplemental_bps", "recipients"],
+      "properties": {
+        "tier": {"type": "string"},
+        "performance_bps": {"type": "integer", "minimum": 0},
+        "management_supplemental_bps": {"type": "integer", "minimum": 0},
+        "performance_supplemental_bps": {"type": "integer", "minimum": 0},
+        "recipients": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["address", "split_bps"],
+            "properties": {
+              "address": {"type": "string", "pattern": "^0x[a-fA-F0-9]{40}$"},
+              "split_bps": {"type": "integer", "minimum": 0, "maximum": 10000}
+            }
+          }
+        }
+      }
+    },
+    "instant_withdrawal": {
+      "type": "object",
+      "required": ["order"],
+      "properties": {
+        "order": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["fuse"],
+            "properties": {
+              "fuse": {"type": "string"},
+              "params": {"type": "array"}
+            }
+          }
+        }
+      }
+    },
+    "pre_hooks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "params"],
+        "properties": {
+          "name": {"type": "string"},
+          "selector": {"type": ["string", "null"]},
+          "params": {"type": "object"}
+        }
+      }
+    },
+    "rewards": {
+      "type": "object",
+      "required": ["enabled"],
+      "properties": {
+        "enabled": {"type": "boolean"}
+      }
+    },
+    "whitelist": {
+      "type": "object",
+      "required": ["enabled_at_launch", "initial_accounts"],
+      "properties": {
+        "enabled_at_launch": {"type": "boolean"},
+        "initial_accounts": {"type": "array", "items": {"type": "string", "pattern": "^0x[a-fA-F0-9]{40}$"}}
+      }
+    },
+    "transferability": {
+      "type": "object",
+      "required": ["enabled_at_launch"],
+      "properties": {
+        "enabled_at_launch": {"type": "boolean"},
+        "irreversible_ack": {"type": "boolean"}
+      }
+    },
+    "execution": {
+      "type": "object",
+      "required": ["broadcast", "fork_chain_id_allowlist", "state_file"],
+      "properties": {
+        "broadcast": {"type": "boolean"},
+        "fork_chain_id_allowlist": {"type": "array", "items": {"type": "integer"}},
+        "gas_multiplier": {"type": "number"},
+        "max_priority_fee_wei": {"type": "integer"},
+        "tx_confirmations": {"type": "integer"},
+        "state_file": {"type": "string"}
+      }
+    }
+  }
+}

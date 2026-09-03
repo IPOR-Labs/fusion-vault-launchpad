@@ -1,0 +1,77 @@
+{
+  "$schema": "../schema/deploy-context.schema.json",
+  "chain_id": 8453,
+  "ipor_abi_deployment": "mainnet-base-fusion",
+  "snapshot_block": null,
+  "public_rpc": "https://base-rpc.publicnode.com",
+  "middleware_owner": null,
+  "fusion_factory": "0x1455717668fA96534f675856347A973fA907e922",
+  "price_oracle_middleware": "0xD9b73Af0b29Cbaf88F01384EA1fB5ADcb608bed0",
+  "fuse_whitelist": "0x3DD2455c55Fef6e2445C0a085f4bEEb1a275E3BA",
+  "standard_fuses": [
+    "0x8Aad082F04d04d1dB2e92160bAa630e31C22C073",
+    "0x7f80241a2b8dA1e11b96B5749991e9A9a40b62a9"
+  ],
+  "price_feed_factories": {
+    "ERC4626PriceFeedFactory": "0x06d08a6281A68c487609BFBc62Ea38523F914050",
+    "DualCrossReferencePriceFeedFactory": "0x119cd4702cDA69ff0fd8cE106295B370423882eb",
+    "CollateralTokenOnMorphoMarketPriceFeedFactory": "0x354De72a148aA91F046265798C61B991de6bDfC0",
+    "PtPriceFeedFactory": "0xac0655f0c6b092513bE56a890110Dc19858e4EdC"
+  },
+  "fuses": {
+    "MorphoSupplyFuse": "0xae93EF3cf337b9599F0dfC12520c3C281637410F",
+    "MorphoBorrowFuse": "0x35f44ad1d9f2773da05f4664bf574c760ba47bf6",
+    "MorphoCollateralFuse": "0xDE3FD3A25534471e92C5940d418B0582802b17B6",
+    "MorphoFlashLoanFuse": "0x20f305Ce4fC12F9171Fcd7C2fBcD7D11f6119265",
+    "MorphoBalanceFuse": "0x7916856E11E0CA021967D0D4daC49D737b7d73d5",
+    "MorphoFlashLoanBalanceFuse": "0x2Ce01779CfE56DC253D0Ac1b47E3bb7E597bCaEA",
+    "AaveV3SupplyFuse": "0x26fD6EF391E98C78CfCA27e00c3d15be4D941625",
+    "AaveV3BorrowFuse": "0x1df60f2a046f3dce8102427e091c1ea99ae1d774",
+    "AaveV3BalanceFuse": "0xf53f3EaFfDf67539256365cA7299540A98b60BA9",
+    "EulerV2SupplyFuse": "0x598326fcEDE2C1B8E9023a20C18FFf6Dea5306A4",
+    "EulerV2BorrowFuse": "0x906496F0D4C733275F892b1a6fC92eD56639B379",
+    "EulerV2CollateralFuse": "0x12c479f8aB53D4884fc76F803dD24eb8B6D17a94",
+    "EulerV2ControllerFuse": "0x108c8cFB9e00681FfA1fa3b654937E8b3BCd2E64",
+    "EulerV2BalanceFuse": "0xF8A6AA09bB55f2319113b0DA88883F392e66A5fa",
+    "SwapFuseUniversalTokenSwapper": "0xdBc5f9962CE85749F1b3c51BA0473909229E3807",
+    "UniversalTokenSwapperFuseV2": "0x2902FA1C5cA409579dFeC3B7457f416Eb4De1a43",
+    "UniversalTokenSwapperEthFuseV2": "0xf026f9D4721aDf2aFba593D2528dd4c3083Ae04B",
+    "UniversalTokenSwapperWithVerificationFuse": "0x38Bd09C17EA88ceB2F7916BF07AF13C2D9F72370",
+    "SwapFuseUniversalTokenSwapperWithVerificationV2": "0x4C3acDFdf187772B1fbbE2de99a0275082b03710",
+    "UniversalTokenSwapperBalanceFuse": "0x706ca1cA4EcE9CF23301D6AB35ce6fb7Cf25DA15",
+    "BalanceFuseUniversalTokenSwapperV2": "0x0A48e903d7502dCe596d3a101F9932Be39C2ccd0",
+    "OdosSwapperFuse": "0xC081477E9933Bf44B25607018f2573FdCA496E19",
+    "OdosSwapperBalanceFuse": "0x758524777B2a6eC40097eA442ca8e1BBaBc137b6",
+    "ERC20BalanceFuse": "0x9ba147fc382dbf4d73512a45370ba0b70c25f6aa",
+    "MerklClaimFuse": "0x310e6133a904761D717EE13D76E180E4EECf907A",
+    "MorphoClaimRewardsFuse": "0x26C740247FC4E1462D4C36e90057cf0e168B3B2B",
+    "EulerRewardTokenClaimFuse": "0x2627a9829b00816C5FC54196bFDfD1C8EC999540",
+    "ExchangeRateValidatorPreHook": "0xa959454ed4e72fC23E2c406F17509AEd98ae75Ee"
+  },
+  "pre_hooks": {
+    "ExchangeRateValidatorPreHook": "0xa959454ed4e72fC23E2c406F17509AEd98ae75Ee",
+    "UpdateBalancesPreHook": "0x7f9179DC81cd0dBE6488eCD192cf37d2B9530F0C",
+    "PauseFunctionPreHook": "0x10e64e5F2f2BD098F31849B48d0BA1B92331cE88"
+  },
+  "markets": {
+    "AAVE_V3": 1,
+    "ERC20_VAULT_BALANCE": 7,
+    "EULER_V2": 11,
+    "UNIVERSAL_TOKEN_SWAPPER": 12,
+    "MORPHO": 14,
+    "MORPHO_FLASH_LOAN": 19,
+    "ODOS_SWAPPER": 42,
+    "UNIVERSAL_TOKEN_SWAPPER_V2": 1202
+  },
+  "morpho_blue": "0xBBBBBbbBBb9cC5e90e3b3Af64bdAF62C37EEFFCb",
+  "aave_v3_pool": null,
+  "tokens": {
+    "cbBTC": "0xcbB7C0000aB88B473b1f5aFd9ef808440eed33Bf",
+    "USDC": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+    "WETH": "0x4200000000000000000000000000000000000006",
+    "wstETH": "0xc1CBa3fCea344f92D9239c08C0568f6F2F0ee452",
+    "EURC": "0x60a3E35Cc302bFA44Cb288Bc5a4F316Fdb1adb42",
+    "rEUL": "0xE08e1f00D388E201e48842E53fA96195568e6813",
+    "EUL": "0xa153Ad732F831a79b5575Fa02e793EC4E99181b0"
+  }
+}

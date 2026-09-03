@@ -1,0 +1,91 @@
+{
+  "$schema": "../schema/deploy-context.schema.json",
+  "chain_id": 1,
+  "ipor_abi_deployment": "mainnet-ethereum-fusion",
+  "snapshot_block": null,
+  "public_rpc": "https://ethereum-rpc.publicnode.com",
+  "middleware_owner": "0xF6a9bd8F6DC537675D499Ac1CA14f2c55d8b5569",
+  "fusion_factory": "0xcd05909C4A1F8E501e4ED554cEF4Ed5E48D9b852",
+  "price_oracle_middleware": "0xC9F32d65a278b012371858fD3cdE315B12d664c6",
+  "fuse_whitelist": "0xF3d8785F351251f715c142132860dF53318C2867",
+  "standard_fuses": [
+    "0x79e8B115Bd41baee318c1940F42F1a2d94D29ab4",
+    "0x6DebD98329d826bA79b6Fd9B14cC718D1720D0bE"
+  ],
+  "price_feed_factories": {
+    "IporFusionPriceFeedUSD": "0x02b2F2809ce74563cb4b2ecA1ADaFB188E4Ed8D7",
+    "DualCrossReferencePriceFeedFactory": "0x8b94c156eBc20a3a385E898Bb7A7973d46d0b303",
+    "CollateralTokenOnMorphoMarketPriceFeedFactory": "0x0Ed13EeC003EA0F51214C4a641a3D0a0718Bb5a7",
+    "ERC4626PriceFeedFactory": "0xf58Fcce9370aBa552032d3EA47baA486F70c0FdC"
+  },
+  "fuses": {
+    "MorphoSupplyFuse": "0xD08Cb606CEe700628E55b0B0159Ad65421E6c8Df",
+    "MorphoBorrowFuse": "0x9981e75b7254fD268C9182631Bf89C86101359d6",
+    "MorphoCollateralFuse": "0xE1aA89eb42C23f292cDa1544566F6EBeE3a67EED",
+    "MorphoFlashLoanFuse": "0x9185033e24dB36407b9b1A1886Cb47B9533433DE",
+    "MorphoBalanceFuse": "0x0aD1776B9319a03216A44AbA0242cC0Bc7e3CaC3",
+    "MorphoFlashLoanBalanceFuse": "0xB1B74e885349cd9D1F0efFb2E1ce0fB79959D7cf",
+    "AaveV3SupplyFuse": "0x7b3957B38b1c91057755D71701247905b48D6063",
+    "AaveV3BalanceFuse": "0xB12D9640A809543615F221f3609eA34BB1F10b25",
+    "AaveV3CollateralFuse": "0xc06F56B865F45D4A80707e7d1403767177c44B22",
+    "AaveV3BorrowFuse": "0x820D879Ef89356B93A7c71ADDBf45c40a0dDE453",
+    "SwapFuseUniversalTokenSwapper": "0x08dFdBB6Ecf19f1fc974E0675783E1150B2B650F",
+    "UniversalTokenSwapperFuseV2": "0x5A62574a2b28cC73c63116919A9131fb4F51941b",
+    "UniversalTokenSwapperEthFuseV2": "0xf3777089A4b31EF0f9e8B6f3762C6FBeD4dDA449",
+    "UniversalTokenSwapperWithVerificationFuse": "0x4E0B22A5052B640967c55b92401b1c067FdA53e0",
+    "SwapFuseUniversalTokenSwapperWithVerificationV2": "0x65f24c9E91752BeC40397B232458DfdAC27e69a6",
+    "UniversalTokenSwapperBalanceFuse": "0xe9562d7bd06b43E6391C5bE4B3c5F5C2BC1E06Bf",
+    "BalanceFuseUniversalTokenSwapperV2": "0x05968c1Ec31e9eF193da13A0C1131e59eBa0d580",
+    "ERC20BalanceFuse": "0x6cEBf3e3392D0860Ed174402884b941DCBB30654",
+    "ExchangeRateValidatorPreHook": "0xEF23ea0EC8cb31aa78E8D4F59771f24b84706199",
+    "SparkLendSupplyFuse": "0x81DD10690E5690177F052b1b74c3070734831106",
+    "SparkLendBorrowFuse": "0xE3aBaE104B259c523f022a880AD4a73ea8DE4c5e",
+    "SparkLendCollateralFuse": "0xACba93fAFc6886694583D20752D20Fb312d1cE46",
+    "SparkLendWithPriceOracleMiddlewareBalanceFuse": "0x05397aDb7A0B596DF88BCa2b06c0cbfB28e5222d",
+    "SupplyFuseEulerV2": "0x9425Cc51E61F04942008B7cAFf129C2c6e57F217",
+    "BorrowFuseEulerV2": "0x6B339a926328B9a5A5705fD051aA5028D9f7f2F6",
+    "CollateralFuseEulerV2": "0x07d80997d57AD9489a4c48f6134dF91822e36514",
+    "ControllerFuseEulerV2": "0x4bFEa07593844155c0BD5ee656cE54e864cA9B55",
+    "BalanceFuseEulerV2": "0xAE9a37DD9229687662834e6696e396e7837BAABD",
+    "SupplyFuseAaveV4": "0x63F8d451a5FF060fCC0EA0D53B5B2870c0D05790",
+    "BalanceFuseAaveV4": "0x018cc4747f53D394E9FB397d812fC74125d8f584",
+    "Erc4626SupplyFuseFluid": "0xe49207496BB2Cf8C3D4FDadcad8e5f72E780B4Ae",
+    "Erc4626BalanceFuseFluid": "0xA0777a5b44D36eE425DC0Ca828549f06E40E0cEE",
+    "SupplyFuseMorphoLiquidityInMarkets": "0x3a017de24585b2C8cAbfCca6ef8248c394DDb138",
+    "BalanceFuseMorphoLiquidityInMarkets": "0x9fb58405D628c702eF23fb1bD9cBB814A4850228"
+  },
+  "pre_hooks": {
+    "ExchangeRateValidatorPreHook": "0xEF23ea0EC8cb31aa78E8D4F59771f24b84706199",
+    "UpdateBalancesIgnoreDustPreHook": "0x0CF053385492FeF81e538F849E1e5308bEFC1A5C",
+    "PauseFunctionPreHook": "0x7846BeD0b55048dB0e6A5388B89E92f091984D59"
+  },
+  "markets": {
+    "AAVE_V3": 1,
+    "SPARK_LEND": 44,
+    "EULER_V2": 11,
+    "ERC20_VAULT_BALANCE": 7,
+    "UNIVERSAL_TOKEN_SWAPPER": 12,
+    "MORPHO": 14,
+    "MORPHO_FLASH_LOAN": 19,
+    "ODOS_SWAPPER": 42,
+    "AAVE_V4": 49,
+    "FLUID_INSTADAPP_POOL": 5,
+    "MORPHO_LIQUIDITY_IN_MARKETS": 41,
+    "UNIVERSAL_TOKEN_SWAPPER_V2": 1202
+  },
+  "morpho_blue": "0xBBBBBbbBBb9cC5e90e3b3Af64bdAF62C37EEFFCb",
+  "aave_v3_pool": "0x87870Bca3F3fD6335C3F4ce8392D69350B4fA4E2",
+  "tokens": {
+    "USDC": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+    "USDT": "0xdAC17F958D2ee523a2206206994597C13D831ec7",
+    "DAI": "0x6B175474E89094C44Da98b954EedeAC495271d0F",
+    "WETH": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+    "WSTETH": "0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0",
+    "WBTC": "0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599",
+    "SIUSD": "0xDBDC1Ef57537E34680B898E1FEBD3D68c7389bCB",
+    "IUSD": "0x48f9e38f3070ad8945dfeae3fa70987722e3d89c"
+  },
+  "morpho_oracles": {
+    "siUSD_USDC": "0xd2cC46b9B2D761502eF933320ecf0268EC0dfa6d"
+  }
+}

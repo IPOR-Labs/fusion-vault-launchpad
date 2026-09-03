@@ -1,0 +1,114 @@
+{
+  "$schema": "../schema/strategy.schema.json",
+  "meta": {
+    "name": "example-usdc-aave-base",
+    "client": "Example Co",
+    "contact": "ops@example.com",
+    "spec_version": "v2",
+    "spec_source": "strategies/example-usdc-aave-base.md",
+    "status": "DRAFT"
+  },
+  "chain": {
+    "id": 8453,
+    "context": "base-fusion"
+  },
+  "vault": {
+    "name": "Example USDC Lending",
+    "symbol": "exUSDC",
+    "underlying": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+    "decimals": 6,
+    "total_supply_cap": null,
+    "total_supply_cap_underlying": "100000",
+    "redemption_delay_seconds": 1,
+    "dao_fee_package_index": 1,
+    "initial_owner_override": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+    "deployer_temporary_owner": false
+  },
+  "roles": {
+    "execution_delay_seconds": 0,
+    "grants": [
+      {"role": "OWNER_ROLE",                            "account": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"},
+      {"role": "GUARDIAN_ROLE",                         "account": "0x3C44CdDdB6a900fa2b585dd299e03d18d4beD2e2"},
+      {"role": "ATOMIST_ROLE",                          "account": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"},
+      {"role": "ALPHA_ROLE",                            "account": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8"},
+      {"role": "FUSE_MANAGER_ROLE",                     "account": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"},
+      {"role": "PRE_HOOKS_MANAGER_ROLE",                "account": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"},
+      {"role": "WHITELIST_ROLE",                        "account": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"},
+      {"role": "CONFIG_INSTANT_WITHDRAWAL_FUSES_ROLE",  "account": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"},
+      {"role": "WITHDRAW_MANAGER_REQUEST_FEE_ROLE",     "account": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"},
+      {"role": "WITHDRAW_MANAGER_WITHDRAW_FEE_ROLE",    "account": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"},
+      {"role": "UPDATE_MARKETS_BALANCES_ROLE",          "account": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8"},
+      {"role": "UPDATE_REWARDS_BALANCE_ROLE",           "account": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8"},
+      {"role": "PRICE_ORACLE_MIDDLEWARE_MANAGER_ROLE",  "account": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"}
+    ]
+  },
+  "fuses": [
+    {"name": "AaveV3SupplyFuse"}
+  ],
+  "balance_fuses": [
+    {"market": "AAVE_V3",             "fuse": "AaveV3BalanceFuse"},
+    {"market": "ERC20_VAULT_BALANCE", "fuse": "ERC20BalanceFuse"}
+  ],
+  "substrates": [
+    {"market": "AAVE_V3",             "encoding": "address", "values": ["0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"]},
+    {"market": "ERC20_VAULT_BALANCE", "encoding": "address", "values": ["0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"]}
+  ],
+  "dependency_graph": [],
+  "market_limits": [],
+  "price_feeds": [
+    {
+      "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+      "feed_type": "literal",
+      "feed": "0x7e860098F58bBFC8648a4311b374B1D669a2bc6B",
+      "params": {}
+    }
+  ],
+  "withdraw_manager": {
+    "window_seconds": 0,
+    "request_fee_bps": null,
+    "withdraw_fee_bps": null,
+    "fees_managed_by": null
+  },
+  "fees": {
+    "tier": "B",
+    "performance_bps": 200,
+    "management_supplemental_bps": 0,
+    "performance_supplemental_bps": 0,
+    "recipients": [
+      {"address": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266", "split_bps": 10000}
+    ]
+  },
+  "instant_withdrawal": {
+    "order": [
+      {
+        "fuse": "AaveV3SupplyFuse",
+        "params": [
+          {"encoding": "uint256", "value": 0},
+          {"encoding": "address", "value": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"}
+        ]
+      }
+    ]
+  },
+  "pre_hooks": [
+    {"name": "ExchangeRateValidatorPreHook", "selector": "0x6e553f65", "params": {"threshold_bps": 200}},
+    {"name": "PauseFunctionPreHook",         "selector": "0xd845a4b3", "params": {}},
+    {"name": "PauseFunctionPreHook",         "selector": "0xfc415e9c", "params": {}}
+  ],
+  "rewards": {"enabled": false},
+  "whitelist": {
+    "enabled_at_launch": true,
+    "initial_accounts": ["0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"]
+  },
+  "transferability": {
+    "enabled_at_launch": false,
+    "irreversible_ack": false
+  },
+  "execution": {
+    "broadcast": false,
+    "fork_chain_id_allowlist": [8453, 31337],
+    "gas_multiplier": 1.25,
+    "max_priority_fee_wei": 1000000,
+    "tx_confirmations": 1,
+    "state_file": ".deploy-state/example-usdc-aave-base.json"
+  }
+}

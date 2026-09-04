@@ -40,6 +40,16 @@ def is_public_rpc(rpc_url: str) -> bool:
     return any(h in host for h in PUBLIC_RPC_HOSTS)
 
 
+def warn_public_rpc(rpc_url: str) -> None:
+    """Broadcast hygiene: a public RPC can confirm so slowly that the client-side timeout
+    kills the run mid-sequence, and later hand-sent transactions race nonces."""
+    if is_public_rpc(rpc_url):
+        host = rpc_url.split("//")[-1].split("/")[0].lower()
+        print(f"⚠️  RPC_URL points at a PUBLIC endpoint ({host}). For --broadcast use a private RPC and run "
+              f"detached (nohup / background) — public nodes stall confirmations and race nonces. "
+              f"If a run is interrupted, re-run WITHOUT --force-restart: completed steps are skipped from state.")
+
+
 def _addresses_in_config(cfg: dict[str, Any]) -> Iterable[tuple[str, str]]:
     """Yield (json_path, address) for every account that ends up holding power or funds."""
     vault = cfg.get("vault", {})

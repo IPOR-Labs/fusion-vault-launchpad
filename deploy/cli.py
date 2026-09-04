@@ -22,21 +22,11 @@ if str(ROOT) not in sys.path:
 
 from deploy.config import load_strategy
 from deploy.context import load_context
-from deploy.guards import is_public_rpc, live_broadcast_problems
+from deploy.guards import live_broadcast_problems, warn_public_rpc
 from deploy.sdk_session import open_session
 from deploy.state import load_state, save_state
 from deploy.steps import all_steps
 from deploy.verification import verify
-
-
-def _warn_public_rpc(rpc_url: str) -> None:
-    """Broadcast hygiene: a public RPC can confirm so slowly that the client-side timeout
-    kills the run mid-sequence, and later hand-sent transactions race nonces."""
-    if is_public_rpc(rpc_url):
-        host = rpc_url.split("//")[-1].split("/")[0].lower()
-        print(f"⚠️  RPC_URL points at a PUBLIC endpoint ({host}). For --broadcast use a private RPC and run "
-              f"detached (nohup / background) — public nodes stall confirmations and race nonces. "
-              f"If a run is interrupted, re-run WITHOUT --force-restart: completed steps are skipped from state.")
 
 
 def _artifact_path(state_path: Path, mode: str) -> Path:
@@ -68,7 +58,7 @@ def _parse_args(argv):
 def main(argv=None):
     args = _parse_args(argv if argv is not None else sys.argv[1:])
     if args.broadcast:
-        _warn_public_rpc(os.environ.get("RPC_URL", ""))
+        warn_public_rpc(os.environ.get("RPC_URL", ""))
     cfg = load_strategy(args.strategy_json)
     deploy_ctx = load_context(cfg.context_name)
     session = open_session(cfg, deploy_ctx, broadcast=args.broadcast)

@@ -60,8 +60,8 @@ def test_underlying_must_have_price_feed():
 
 # --- broadcast hygiene: public RPC warning (pure) ---
 def test_public_rpc_hosts_are_flagged(capsys):
-    from deploy.cli import _warn_public_rpc
-    _warn_public_rpc("https://ethereum-rpc.publicnode.com")
+    from deploy.guards import warn_public_rpc
+    warn_public_rpc("https://ethereum-rpc.publicnode.com")
     assert "PUBLIC endpoint" in capsys.readouterr().out
-    _warn_public_rpc("https://eth-mainnet.g.alchemy.com/v2/key")
+    warn_public_rpc("https://eth-mainnet.g.alchemy.com/v2/key")
     assert capsys.readouterr().out == ""

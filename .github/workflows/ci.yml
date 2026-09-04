@@ -31,3 +31,22 @@ jobs:
           for p in pathlib.Path("contexts").glob("*.json"):
               jsonschema.validate(json.loads(p.read_text()), c); print("ok", p)
           PY
+
+  import-smoke:
+    # Installs the real runtime dependencies (including the SDK) and checks that
+    # every module imports and the CLI answers --help. No chain access needed.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Install runtime deps
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+      - name: Import every module and run --help
+        run: |
+          python -c "import deploy.cli, deploy.sdk_session, deploy.verification, deploy.steps; print('imports ok'); print(len(deploy.steps.all_steps()), 'steps')"
+          python -m deploy --help > /dev/null
+          python tools/spec_lint.py strategies/example-usdc-aave-base.json

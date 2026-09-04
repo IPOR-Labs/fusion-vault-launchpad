@@ -15,6 +15,8 @@ Symptoms first, then cause and fix.
 | `Broadcast against a LIVE node … requires --i-understand-this-is-live` | the node is not anvil/hardhat | for a rehearsal, point `RPC_URL` at anvil; for a live run, pass the flag after the human's yes |
 | `Refusing to broadcast to a live chain: … well-known test account` | placeholder addresses left in the file | replace every anvil default account with real addresses |
 | A public RPC returns 403 or rate-limits | provider policy | use another public endpoint for reads, a private one for writes |
+| First tx on the fork fails: `Fork Error: … 403 … Archive requests require a personal token` | the fork source refuses archive reads | restart anvil with `--fork-url https://mainnet.base.org` (Base) or a private RPC |
+| `plan_diff` reports every `01b_bootstrap_roles` grant as `run_only` | the dry-run and the rehearsal ran with a different signer | harmless in older versions; fixed by excluding the signer from the action identity. Update the repo. |
 
 ## Strategy JSON
 

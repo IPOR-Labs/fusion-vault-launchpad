@@ -6,7 +6,7 @@
 
 This repository is self-contained and public. It depends only on public resources: the [IPOR Fusion Python SDK](https://github.com/IPOR-Labs/ipor-fusion.py) on PyPI, the contracts and addresses published by IPOR Labs on GitHub, [docs.ipor.io](https://docs.ipor.io), an RPC endpoint of your choice, and optionally [Foundry](https://getfoundry.sh) for fork rehearsals.
 
-It is written to be driven by an **AI coding agent** (Claude Code, OpenAI Codex, xAI or any other) working together with a **human operator**. Agents: start at [`AGENTS.md`](./AGENTS.md). Humans: keep reading.
+It is written to be driven by an **AI coding agent** working together with a **human operator**, and it does not depend on any particular AI product: the instructions live in [`AGENTS.md`](./AGENTS.md), and pointer files exist for every common tool (see [`docs/09-using-with-your-agent.md`](./docs/09-using-with-your-agent.md)). Agents: start at `AGENTS.md`. Humans: keep reading.
 
 ## What it does
 
@@ -28,9 +28,12 @@ Simulation never needs a private key. Creating a vault always does. The pipeline
 git clone <this repository> && cd fusion-vault-launchpad
 python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements-dev.txt
+python tools/doctor.py                                    # what works in this environment (never prints secrets)
 python -m pytest                                          # unit tests, no chain needed
 python -m deploy strategies/example-usdc-aave-base.json   # dry-run of the shipped example (no key, no RPC config)
 ```
+
+`make help` lists the same commands as make targets (`make doctor`, `make test`, `make dry-run`, `make fork`, `make rehearse`, `make diff`, `make verify`).
 
 The example is a single-venue USDC vault on Base supplying to Aave V3. Every address in it is an anvil placeholder; the pipeline will not let it reach a live chain.
 
@@ -55,6 +58,16 @@ To deploy your own vault:
 | [`docs/06-troubleshooting.md`](./docs/06-troubleshooting.md) | symptoms, causes, fixes |
 | [`docs/07-resources.md`](./docs/07-resources.md) | every public resource this repo relies on |
 | [`docs/08-glossary.md`](./docs/08-glossary.md) | terms |
+| [`docs/09-using-with-your-agent.md`](./docs/09-using-with-your-agent.md) | how Codex, Claude Code, Gemini, Cursor, Copilot, Windsurf, Grok, Aider and others pick up the instructions; a starter prompt |
+
+## Verified so far
+
+| Path | Status |
+|---|---|
+| Fresh install from PyPI, unit tests, schema checks | CI on every commit |
+| Dry-run of the example without key or RPC config | run by a fresh agent from the docs alone |
+| Fork rehearsal of the example on a Base fork, all 16 steps, verification 10/10 | run on 2026-09-04 with `ipor-fusion` 3.6.3 |
+| Live deployment | by you, with your key, after your own rehearsal |
 
 ## Repository map
 
@@ -64,7 +77,8 @@ schema/            JSON schemas for strategies and chain contexts
 contexts/          per-chain address books (FusionFactory, fuses, feed factories, pre-hooks); a cache of public on-chain data
 strategies/        your strategy specs (.json machine spec + .md human spec); one shipped example
 templates/         the human spec template
-tools/             spec_lint.py (md ↔ json reconciliation), plan_diff.py (plan ↔ run diff)
+tools/             doctor.py (environment check), spec_lint.py (md ↔ json), plan_diff.py (plan ↔ run)
+Makefile           the same commands as make targets; `make help`
 tests/             SDK-free unit tests
 docs/              the manual
 .deploy-state/     run state and artifacts (git-ignored, created on first run)
@@ -73,6 +87,8 @@ docs/              the manual
 ## Scope
 
 This repository covers **creating and configuring** a vault and verifying it. Operating the strategy (the "Alpha" that moves funds), monitoring, and later hardening (moving roles to multisigs, timelocks, opening the whitelist) are outside its scope today. Pointers for those are in [`docs/07-resources.md`](./docs/07-resources.md).
+
+Pointer files for agent tools (`CLAUDE.md`, `GEMINI.md`, `CONVENTIONS.md`, `.cursor/`, `.windsurf/`, `.grok/`, `.github/copilot-instructions.md`) all say one thing: read `AGENTS.md`.
 
 ## Contributing and license
 

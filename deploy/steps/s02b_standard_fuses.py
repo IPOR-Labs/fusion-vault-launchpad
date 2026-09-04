@@ -24,7 +24,7 @@ def run(cfg, deploy_ctx, session, instance, state, broadcast):
     try:
         on_chain = {str(a) for a in vault.get_fuses().call()}
     except Exception as ex:  # dry-run against a not-yet-deployed preview address
-        print(f"[{NAME}] cannot read fuses ({ex}) — will evaluate at broadcast")
+        print(f"[{NAME}] vault not deployed yet (dry-run) — standard-fuse upgrade evaluated at broadcast")
         on_chain = set()
     to_add, to_remove = plan_standard_fuse_upgrade(on_chain, standard)
     if not to_add and not to_remove:

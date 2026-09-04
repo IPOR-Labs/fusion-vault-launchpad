@@ -32,6 +32,9 @@ def run(cfg, deploy_ctx, session, instance, state, broadcast):
     web3 = session.ctx.web3
     am_address = Web3.to_checksum_address(instance["access_manager"])
     deployer = Web3.to_checksum_address(session.signer)
+    if not broadcast and int(deployer, 16) == 0:
+        print(f"[{NAME}] dry-run without a key: the deployer is unknown (shown as the zero address). "
+              f"At broadcast, the signing account receives these roles.")
     granted = 0
     skipped = 0
     failed = []
@@ -43,10 +46,14 @@ def run(cfg, deploy_ctx, session, instance, state, broadcast):
         if role_id in seen:
             continue
         seen.add(role_id)
+        # The grantee is "whoever signs", so it is a result, not part of the plan
+        # identity: a keyless dry-run (zero signer) must diff clean against a
+        # rehearsal or a live run signed by the real deployer.
         rec = session.recorder.add(
             NAME, action="grantRole(bootstrap)", key=role_name,
             target=am_address, function="grantRole(uint64,address,uint32)",
-            args={"role": role_name, "role_id": role_id, "account": str(deployer), "delay": 0},
+            args={"role": role_name, "role_id": role_id, "delay": 0},
+            note=f"grantee = deployer {deployer}",
         )
         if has_role_raw(web3, am_address, role_id, deployer):
             skipped += 1

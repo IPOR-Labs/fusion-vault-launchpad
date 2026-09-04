@@ -60,10 +60,10 @@ Always start a **fresh** anvil for each rehearsal. A leftover fork, often of a d
 lsof -ti :8546 | xargs -r kill
 
 # fork the target chain (Base shown; use an Ethereum RPC for Ethereum strategies)
-anvil --fork-url <rpc-of-target-chain> --port 8546
+anvil --fork-url https://mainnet.base.org --port 8546
 ```
 
-Any RPC works as the fork source, including the public ones in `contexts/`, though a private one is faster. Verify the fork is the chain you think it is:
+The fork source must serve **archive reads** (state at the pinned fork block). Some public endpoints refuse those without an API key, and the first transaction on the fork then fails with `Fork Error … 403`. Base's official endpoint `https://mainnet.base.org` worked in our runs; a private RPC (Alchemy, Infura, QuickNode) is the reliable choice. `make fork` wraps this. Verify the fork is the chain you think it is:
 
 ```bash
 cast chain-id --rpc-url http://127.0.0.1:8546            # 8453 for Base, 1 for Ethereum

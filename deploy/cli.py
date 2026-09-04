@@ -119,7 +119,10 @@ def main(argv=None):
     print(f"Wrote run artifact: {artifact}")
 
     if not args.broadcast:
-        print("\nDRY-RUN COMPLETE. Nothing was sent and no state was written.")
+        n_actions = len(session.recorder.actions)
+        n_steps = len({a.step for a in session.recorder.actions})
+        print(f"\nDRY-RUN COMPLETE: {n_actions} planned actions across {n_steps} steps. "
+              "Nothing was sent and no state was written.")
         print("  The plan above is what --broadcast would execute. The on-chain verification report")
         print("  runs only after a broadcast, because the vault does not exist yet.")
         print("  Next: rehearse on a local fork (docs/04-deploy.md §4), then review with a human.")

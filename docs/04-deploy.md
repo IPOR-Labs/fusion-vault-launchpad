@@ -88,13 +88,13 @@ Then diff the plan against the run:
 python tools/plan_diff.py .deploy-state/<name>.plan.json .deploy-state/<name>.run.json
 ```
 
-Exit 0 means the broadcast did nothing the plan did not declare. `plan_only` entries are usually benign (an already-priceable asset skipped). Any `run_only` entry is a hard fail; investigate before going further. A `config_hash` mismatch between the two artifacts means the JSON changed between dry-run and rehearsal; redo the dry-run.
+Exit 0 means the broadcast did nothing the plan did not declare. `plan_only` entries are usually benign: an already-priceable asset skipped, or the standard-fuse upgrade found nothing to do because the factory already injects the latest version. Any `run_only` entry is a hard fail; investigate before going further. A `config_hash` mismatch between the two artifacts means the JSON changed between dry-run and rehearsal; redo the dry-run.
 
 Notes:
 
 - If a step fails, fix the JSON or the context and re-run the same command. Completed steps are skipped from state.
 - When the rehearsal is clean, **delete `.deploy-state/<name>.json`** (it holds fork addresses) or pass `--force-restart` on the live run.
-- Sum `gas_used` in `.run.json` to estimate what to fund the live deployer with; Ethereum needs far more than Base.
+- Sum `gas_used` in `.run.json` to estimate what to fund the live deployer with. The shipped example used about 10.4M gas on a Base fork (the clone alone is about 8.9M); Ethereum gas prices make the same deployment far more expensive.
 
 ## 5. Live broadcast
 

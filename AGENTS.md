@@ -10,7 +10,7 @@ Turn the human's intent into a schema-valid strategy file, prove on a dry-run an
 
 1. `docs/01-concepts.md` — vaults, fuses, substrates, roles, the lifecycle.
 2. `docs/05-human-in-the-loop.md` — what only the human decides and where you must stop.
-3. `docs/02-setup.md` — check the environment works before promising anything.
+3. `docs/02-setup.md` — then run `python tools/doctor.py` (or `make doctor`): it tells you which of the three modes (dry-run, fork rehearsal, live) the current environment supports, without printing any secret.
 4. `docs/03-strategy-json.md` — the strategy file, field by field.
 5. `docs/04-deploy.md` — dry-run, fork rehearsal, live broadcast, verification.
 
@@ -78,7 +78,7 @@ intent ──► strategies/<name>.md ──► strategies/<name>.json ──►
 | Live | `python -m deploy … --broadcast --i-understand-this-is-live` with real `RPC_URL` and funded key | live vault, state file | **yes** |
 | Verify | `python -m deploy … --verify-only` | report | no |
 
-Details, flags and failure modes: `docs/04-deploy.md`.
+Details, flags and failure modes: `docs/04-deploy.md`. Every row also exists as a make target (`make help`), so you can run `make dry-run STRATEGY=strategies/<name>.json`, `make fork`, `make rehearse`, `make diff`, `make verify` instead of remembering flags. Prefer the plain commands when you need a non-default flag.
 
 ## 7. How to talk to the human
 

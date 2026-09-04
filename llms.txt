@@ -1,0 +1,35 @@
+# Fusion Vault Launchpad
+
+> Open-source (MIT) toolkit for creating an IPOR Fusion PlasmaVault from one JSON specification, operated by an AI agent together with a human supervisor. Any agent tool works; the instructions live in AGENTS.md. Simulation (dry-run) needs no private key and no configuration; a fork rehearsal uses anvil's public test key; creating a vault on a live chain needs the human's own funded key, placed by the human in a local .env file, and the human's explicit "yes" after a clean rehearsal. Never ask a human for a private key in a conversation.
+
+## Start here
+
+- [README](https://raw.githubusercontent.com/IPOR-Labs/fusion-vault-launchpad/main/README.md): What the toolkit does, the three modes, the quick start, what has been verified.
+- [AGENTS.md](https://raw.githubusercontent.com/IPOR-Labs/fusion-vault-launchpad/main/AGENTS.md): Operating guide for AI agents: rules, autonomy boundary, private-key handling, lifecycle commands. Read first.
+- [Using this repository with your agent](https://raw.githubusercontent.com/IPOR-Labs/fusion-vault-launchpad/main/docs/09-using-with-your-agent.md): Per-tool discovery table, a starter prompt, what a well-behaved agent does.
+
+## Manual
+
+- [01 Concepts](https://raw.githubusercontent.com/IPOR-Labs/fusion-vault-launchpad/main/docs/01-concepts.md): Vaults, fuses, substrates, roles, one-way switches, lifecycle, trust order.
+- [02 Setup](https://raw.githubusercontent.com/IPOR-Labs/fusion-vault-launchpad/main/docs/02-setup.md): Prerequisites, .env, anvil fork, verifying the installation.
+- [03 The strategy file](https://raw.githubusercontent.com/IPOR-Labs/fusion-vault-launchpad/main/docs/03-strategy-json.md): Field reference for strategies/<name>.json and chain contexts.
+- [04 Deploying](https://raw.githubusercontent.com/IPOR-Labs/fusion-vault-launchpad/main/docs/04-deploy.md): Dry-run, fork rehearsal, live broadcast, verification, recovery.
+- [05 Human in the loop](https://raw.githubusercontent.com/IPOR-Labs/fusion-vault-launchpad/main/docs/05-human-in-the-loop.md): What only the human decides and how to ask.
+- [06 Troubleshooting](https://raw.githubusercontent.com/IPOR-Labs/fusion-vault-launchpad/main/docs/06-troubleshooting.md): Symptoms, causes, fixes.
+- [07 Public resources](https://raw.githubusercontent.com/IPOR-Labs/fusion-vault-launchpad/main/docs/07-resources.md): Public sources and common on-chain reads.
+- [08 Glossary](https://raw.githubusercontent.com/IPOR-Labs/fusion-vault-launchpad/main/docs/08-glossary.md): Terms.
+
+## Reference files
+
+- [Example strategy (JSON)](https://raw.githubusercontent.com/IPOR-Labs/fusion-vault-launchpad/main/strategies/example-usdc-aave-base.json): A placeholder single-venue USDC vault on Base; every address is an anvil test account and the pipeline refuses it on a live chain.
+- [Example strategy (human spec)](https://raw.githubusercontent.com/IPOR-Labs/fusion-vault-launchpad/main/strategies/example-usdc-aave-base.md): The matching human-readable spec.
+- [Strategy spec template](https://raw.githubusercontent.com/IPOR-Labs/fusion-vault-launchpad/main/templates/strategy-spec.md): The shape of a human spec, with provenance tags.
+- [Strategy JSON schema](https://raw.githubusercontent.com/IPOR-Labs/fusion-vault-launchpad/main/schema/strategy.schema.json): Validation schema for strategy files.
+- [Base chain context](https://raw.githubusercontent.com/IPOR-Labs/fusion-vault-launchpad/main/contexts/base-fusion.json): Addresses for Base (factory, fuses, feed factories, pre-hooks).
+- [Ethereum chain context](https://raw.githubusercontent.com/IPOR-Labs/fusion-vault-launchpad/main/contexts/mainnet-ethereum-fusion.json): Addresses for Ethereum mainnet.
+- [Disclaimer](https://raw.githubusercontent.com/IPOR-Labs/fusion-vault-launchpad/main/DISCLAIMER.md): Terms of use and responsibility.
+
+## Optional
+
+- [Contributing](https://raw.githubusercontent.com/IPOR-Labs/fusion-vault-launchpad/main/CONTRIBUTING.md): Ground rules, adding chains, fuses and steps.
+- [IPOR Fusion documentation index](https://docs.ipor.io/llms.txt): The protocol documentation, indexed for language models.

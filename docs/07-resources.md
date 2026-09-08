@@ -48,6 +48,7 @@ This repository stops at a verified, configured vault. Moving funds is the Alpha
 |---|---|
 | Encode a fuse action (`AaveV3SupplyFuse.supply`, `MorphoFlashLoanFuse.flash_loan`, `UniversalTokenSwapperFuse.swap`, …) and send `PlasmaVault.execute` | `ipor_fusion.fuses` and `ipor_fusion.PlasmaVault` in the SDK |
 | Prove a strategy step before sending it, with no fork and no key | `ipor_fusion.VaultSimulator` (`eth_simulateV1`); the SDK's `tests/test_simulate_vault_from_scratch_base.py` shows a full clone-to-execute batch |
+| A worked leveraged loop, as the SDK maintainers write it | the SDK's `tests/test_simulate_looping_morpho_blue_base.py` (Morpho Blue collateral + borrow inside a Morpho flash loan, Aerodrome swap, 3x) and `tests/test_simulate_looping_aave_v3_base.py` (Aave V3, 10x). Both run against an already-configured live vault, so they show the Alpha's side; the deployment-time wiring they rely on (fuses, substrates, callback handler) is what `strategies/example-wsteth-usdc-loop-base.json` produces. The SDK's `tests/` folder is the canonical, growing set of examples: prefer copying one of them over writing a loop from scratch |
 | A ready-to-run bot skeleton | [`ipor-fusion-alpha-example`](https://github.com/IPOR-Labs/ipor-fusion-alpha-example) |
 | Flash-loan strategies | the vault must route the callback: `callback_handlers[]` in the strategy file (`docs/03-strategy-json.md`); the loop example shows the Morpho case |
 

@@ -82,7 +82,7 @@ Whitelisted at launch (initial account: the operator). Shares non-transferable a
 
 ## 10. What the Alpha does (out of scope for the deployer)
 
-One loop step, executed by the Alpha through the SDK inside a Morpho flash loan of USDC: swap all USDC to wstETH via SwapRouter02 (USDC → WETH → wstETH), supply the wstETH as collateral, borrow USDC to repay the flash loan. The identical configuration to this file, run on 2026-09-08 in a single `eth_simulateV1` batch against a public Base RPC (clone, configuration, 10,000 USDC deposit, one loop with a 15,000 USDC flash loan), ended at 8.15 wstETH collateral, 15,000 USDC debt, LTV 60% under the 86% LLTV, and a NAV of 9,968.70 USDC after swap costs. Fuse wrappers for the loop live in the SDK (`MorphoFlashLoanFuse`, `MorphoCollateralFuse`, `MorphoBorrowFuse`, `UniversalTokenSwapperFuse`).
+One loop step, executed by the Alpha through the SDK inside a Morpho flash loan of USDC: swap all USDC to wstETH via SwapRouter02 (USDC → WETH → wstETH), supply the wstETH as collateral, borrow USDC to repay the flash loan. The identical configuration to this file, run on 2026-09-08 in a single `eth_simulateV1` batch against a public Base RPC (clone, configuration, 10,000 USDC deposit, one loop with a 15,000 USDC flash loan), ended at 8.15 wstETH collateral, 15,000 USDC debt, LTV 60% under the 86% LLTV, and a NAV of 9,968.70 USDC after swap costs. Fuse wrappers for the loop live in the SDK (`MorphoFlashLoanFuse`, `MorphoCollateralFuse`, `MorphoBorrowFuse`, `UniversalTokenSwapperFuse`). The SDK's own worked loop, `tests/test_simulate_looping_morpho_blue_base.py`, is the reference to copy for the Alpha's code; it targets an already-configured vault, which is exactly what this file deploys.
 
 ## 11. Deployment summary
 

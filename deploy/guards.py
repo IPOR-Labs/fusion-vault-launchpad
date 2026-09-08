@@ -63,6 +63,19 @@ def _addresses_in_config(cfg: dict[str, Any]) -> Iterable[tuple[str, str]]:
         yield f"fees.recipients[{i}].address", r.get("address", "")
 
 
+SIGNOFF_KEYS: dict[str, str] = {
+    "roles_reviewed": "the human has reviewed which address holds which role",
+    "hardening_ack": "the human knows the vault must be hardened before production, with this repository's help (docs/10-hardening.md)",
+    "frontend_listing_ack": "the human knows that listing on app.ipor.io requires contacting the IPOR Labs team",
+}
+
+
+def missing_signoffs(cfg: dict[str, Any]) -> list[str]:
+    """Sign-off acknowledgements that are not `true`. Empty = the human has acknowledged all three."""
+    so = cfg.get("signoff", {}) or {}
+    return [f"signoff.{k} is not true — {why}" for k, why in SIGNOFF_KEYS.items() if so.get(k) is not True]
+
+
 def placeholder_accounts_in_config(cfg: dict[str, Any]) -> list[str]:
     """JSON paths whose address is a well-known test account. Must be empty before a live broadcast."""
     return [path for path, addr in _addresses_in_config(cfg) if addr.lower() in ANVIL_DEFAULT_ACCOUNTS]
@@ -77,4 +90,5 @@ def live_broadcast_problems(cfg: dict[str, Any], signer: str, client_version: st
         problems.append(f"the signer {signer} is a well-known test account with a public private key")
     for path in placeholder_accounts_in_config(cfg):
         problems.append(f"{path} is a well-known test account (anvil default); replace it with a real address")
+    problems.extend(missing_signoffs(cfg))
     return problems

@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "PlasmaVault strategy spec",
   "type": "object",
-  "required": ["meta", "chain", "vault", "roles", "fuses", "balance_fuses", "substrates", "price_feeds", "withdraw_manager", "fees", "instant_withdrawal", "rewards", "whitelist", "transferability", "execution"],
+  "required": ["meta", "chain", "vault", "roles", "fuses", "balance_fuses", "substrates", "price_feeds", "withdraw_manager", "fees", "instant_withdrawal", "rewards", "whitelist", "transferability", "signoff", "execution"],
   "properties": {
     "$schema": {"type": "string"},
     "meta": {
@@ -248,6 +248,28 @@
       "properties": {
         "enabled_at_launch": {"type": "boolean"},
         "irreversible_ack": {"type": "boolean"}
+      }
+    },
+    "rehearsal": {
+      "type": "object",
+      "description": "How the fork rehearsal uses the vault after deployment (deploy/rehearsal.py): fund, deposit, execute the script's batches, check accounting, withdraw. Runs only against a local fork.",
+      "required": ["token_holder"],
+      "properties": {
+        "script": {"type": ["string", "null"], "description": "repo-relative Python file exposing build_batches(env, stage) -> list[RehearsalBatch]; stage is 'open' (after the deposit) or 'unwind' (before the withdrawal). Without it only deposit and withdrawal are rehearsed and every declared fuse fails coverage."},
+        "token_holder": {"type": "string", "description": "an address, or a top-level context key (e.g. morpho_blue), that holds plenty of the underlying on the fork; impersonated to fund the deployer"},
+        "deposit_underlying": {"type": "string", "description": "human amount of the underlying to deposit, e.g. \"10000\"; default 1000"},
+        "max_nav_drift_bps": {"type": "integer", "minimum": 0, "description": "ceiling on totalAssets movement across one execute batch; default 100"},
+        "allow_unexercised": {"type": "array", "items": {"type": "string"}, "description": "declared fuses the rehearsal may leave unexecuted (claim fuses with nothing to claim on a fresh fork)"}
+      }
+    },
+    "signoff": {
+      "type": "object",
+      "description": "Human acknowledgements collected in the human's own words before a live broadcast (docs/05-human-in-the-loop.md §4). All three must be true on a live chain; a fork rehearsal ignores them.",
+      "required": ["roles_reviewed", "hardening_ack", "frontend_listing_ack"],
+      "properties": {
+        "roles_reviewed": {"type": "boolean", "description": "the human has reviewed which address holds which role (the roles table in the .md spec)"},
+        "hardening_ack": {"type": "boolean", "description": "the human knows the vault must be hardened before production and that this repository helps the agent do it (docs/10-hardening.md)"},
+        "frontend_listing_ack": {"type": "boolean", "description": "the human knows that showing the vault on app.ipor.io requires contacting the IPOR Labs team"}
       }
     },
     "execution": {

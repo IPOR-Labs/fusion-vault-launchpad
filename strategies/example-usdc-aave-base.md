@@ -73,3 +73,13 @@ python -m deploy strategies/example-usdc-aave-base.json
 | Who | Role | Date | Decision |
 |---|---|---|---|
 | — | Strategist | — | not applicable (example) |
+
+| Acknowledgement | Flag | The human's words | Date |
+|---|---|---|---|
+| Reviewed which address holds which role | `signoff.roles_reviewed` | not applicable (example; all placeholders) | — |
+| Hardening before production, with this repository's help | `signoff.hardening_ack` | not applicable (example) | — |
+| Front-end listing requires the IPOR Labs team | `signoff.frontend_listing_ack` | not applicable (example) | — |
+
+## 12. Rehearsal `[agent]`
+
+Script `rehearsals/example-usdc-aave-base.py`: supply the deposited USDC to Aave V3 (the SDK guide walk). Fork rehearsal on 2026-09-08: 10,000 USDC deposited from the Morpho Blue contract's balance, credited 1:1; Aave supply moved NAV +0.1 bps; the instant queue paid a 5,000 USDC withdrawal out of Aave.

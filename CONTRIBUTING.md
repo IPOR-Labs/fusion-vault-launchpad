@@ -48,6 +48,10 @@ Steps are modules in `deploy/steps/` exposing `NAME` and `run(cfg, deploy_ctx, s
 
 Add a verification row in `deploy/verification.py` for whatever the step configures.
 
+### Adding a rehearsal script
+
+A strategy that declares functional fuses needs `rehearsals/<name>.py` exposing `build_batches(env, stage) -> list[RehearsalBatch]` (`deploy/rehearsal_rules.py`). Build the actions with the SDK fuse wrappers, copying the closest walk in the SDK's `tests/test_simulate_*.py`; declare every fuse a batch exercises. `stage == "open"` runs after the deposit, `"unwind"` before the withdrawal. Keep the numbers derived from `env` reads (balances, positions), never hard-coded, so the script survives a different fork block.
+
 ## Pull requests
 
 - One concern per PR.

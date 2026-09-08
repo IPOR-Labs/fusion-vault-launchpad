@@ -1,6 +1,6 @@
 # Fusion Vault Launchpad
 
-> Open-source (MIT) toolkit for creating an IPOR Fusion PlasmaVault from one JSON specification, operated by an AI agent together with a human supervisor. Any agent tool works; the instructions live in AGENTS.md. Simulation (dry-run) needs no private key and no configuration; a fork rehearsal uses anvil's public test key; creating a vault on a live chain needs the human's own funded key, placed by the human in a local .env file, and the human's explicit "yes" after a clean rehearsal. Never ask a human for a private key in a conversation.
+> Open-source (MIT) toolkit for creating an IPOR Fusion PlasmaVault from one JSON specification, operated by an AI agent together with a human supervisor. A fork rehearsal deploys the vault and then uses it (deposit, every fuse executed, accounting checked, withdrawal paid) before anything is called verified. Any agent tool works; the instructions live in AGENTS.md. Simulation (dry-run) needs no private key and no configuration; a fork rehearsal uses anvil's public test key; creating a vault on a live chain needs the human's own funded key, placed by the human in a local .env file, and the human's explicit "yes" after a clean rehearsal. Never ask a human for a private key in a conversation.
 
 ## Start here
 
@@ -18,12 +18,14 @@
 - [06 Troubleshooting](https://raw.githubusercontent.com/IPOR-Labs/fusion-vault-launchpad/main/docs/06-troubleshooting.md): Symptoms, causes, fixes.
 - [07 Public resources](https://raw.githubusercontent.com/IPOR-Labs/fusion-vault-launchpad/main/docs/07-resources.md): Public sources and common on-chain reads.
 - [08 Glossary](https://raw.githubusercontent.com/IPOR-Labs/fusion-vault-launchpad/main/docs/08-glossary.md): Terms.
+- [10 Hardening](https://raw.githubusercontent.com/IPOR-Labs/fusion-vault-launchpad/main/docs/10-hardening.md): What comes after a verified vault: role handover, delays, the deployer's renounce, and why front-end listing needs the IPOR Labs team.
 
 ## Reference files
 
 - [Example strategy (JSON)](https://raw.githubusercontent.com/IPOR-Labs/fusion-vault-launchpad/main/strategies/example-usdc-aave-base.json): A placeholder single-venue USDC vault on Base; every address is an anvil test account and the pipeline refuses it on a live chain.
 - [Example strategy (human spec)](https://raw.githubusercontent.com/IPOR-Labs/fusion-vault-launchpad/main/strategies/example-usdc-aave-base.md): The matching human-readable spec.
 - [Loop example strategy (JSON)](https://raw.githubusercontent.com/IPOR-Labs/fusion-vault-launchpad/main/strategies/example-wsteth-usdc-loop-base.json): A placeholder leveraged wstETH/USDC loop on Morpho Blue (Base): collateral, borrow and flash-loan fuses, the flash-loan callback handler, the legacy universal swapper, scheduled withdrawals.
+- [Rehearsal scripts](https://github.com/IPOR-Labs/fusion-vault-launchpad/tree/main/rehearsals): The SDK fuse actions the fork rehearsal executes for each example (Aave supply; Morpho flash-loan loop open and unwind).
 - [Loop example strategy (human spec)](https://raw.githubusercontent.com/IPOR-Labs/fusion-vault-launchpad/main/strategies/example-wsteth-usdc-loop-base.md): The matching human-readable spec, including what the Alpha does after deployment.
 - [Strategy spec template](https://raw.githubusercontent.com/IPOR-Labs/fusion-vault-launchpad/main/templates/strategy-spec.md): The shape of a human spec, with provenance tags.
 - [Strategy JSON schema](https://raw.githubusercontent.com/IPOR-Labs/fusion-vault-launchpad/main/schema/strategy.schema.json): Validation schema for strategy files.

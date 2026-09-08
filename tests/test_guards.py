@@ -1,6 +1,7 @@
 """deploy.guards — pure pre-broadcast safety checks."""
 from deploy.guards import (
     ANVIL_DEFAULT_ACCOUNTS,
+    missing_signoffs,
     is_local_node,
     is_public_rpc,
     live_broadcast_problems,
@@ -17,6 +18,7 @@ def _cfg(owner=REAL, grants=(REAL,), wl=(REAL,), fee=REAL):
         "roles": {"grants": [{"role": "OWNER_ROLE", "account": a} for a in grants]},
         "whitelist": {"initial_accounts": list(wl)},
         "fees": {"recipients": [{"address": fee, "split_bps": 10000}]},
+        "signoff": {"roles_reviewed": True, "hardening_ack": True, "frontend_listing_ack": True},
     }
 
 
@@ -61,3 +63,19 @@ def test_fork_rehearsal_allows_test_accounts():
 
 def test_live_broadcast_clean_config_passes():
     assert live_broadcast_problems(_cfg(), signer=REAL, client_version="Geth/v1.14") == []
+
+
+# --- sign-off acknowledgements (live chain only) ---
+def test_missing_signoffs_lists_each_unacknowledged_item():
+    cfg = _cfg(); cfg["signoff"] = {"roles_reviewed": True, "hardening_ack": False}
+    m = missing_signoffs(cfg)
+    assert len(m) == 2 and "hardening_ack" in m[0] and "frontend_listing_ack" in m[1]
+    assert missing_signoffs(_cfg()) == []
+    assert len(missing_signoffs({})) == 3
+
+
+def test_live_broadcast_refuses_without_signoffs_but_fork_does_not():
+    cfg = _cfg(); cfg["signoff"] = {}
+    live = live_broadcast_problems(cfg, signer=REAL, client_version="Geth/v1.14")
+    assert len(live) == 3 and all("signoff." in p for p in live)
+    assert live_broadcast_problems(cfg, signer=ANVIL0, client_version="anvil/v1.0.0") == []

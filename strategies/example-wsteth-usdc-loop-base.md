@@ -97,3 +97,13 @@ python -m deploy strategies/example-wsteth-usdc-loop-base.json
 | Who | Role | Date | Decision |
 |---|---|---|---|
 | — | Strategist | — | not applicable (example) |
+
+| Acknowledgement | Flag | The human's words | Date |
+|---|---|---|---|
+| Reviewed which address holds which role | `signoff.roles_reviewed` | not applicable (example; all placeholders) | — |
+| Hardening before production, with this repository's help | `signoff.hardening_ack` | not applicable (example) | — |
+| Front-end listing requires the IPOR Labs team | `signoff.frontend_listing_ack` | not applicable (example) | — |
+
+## 13. Rehearsal `[agent]`
+
+Script `rehearsals/example-wsteth-usdc-loop-base.py`, mirroring the SDK's `tests/test_simulate_looping_morpho_blue_base.py` with the Uniswap route this file grants. Fork rehearsal on 2026-09-08: 10,000 USDC deposited from the Morpho Blue contract's balance, credited 1:1; the 2.5x loop (15,000 USDC flash loan, USDC → WETH → wstETH, collateral, borrow) moved NAV −38 bps with cached and refreshed NAV equal; the unwind (flash loan, repay by shares, withdraw collateral, swap back) left everything idle; a scheduled withdrawal of half the shares was paid through `requestShares` → `releaseFunds` → `redeemFromRequest`.

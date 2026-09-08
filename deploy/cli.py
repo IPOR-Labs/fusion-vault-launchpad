@@ -26,6 +26,7 @@ from deploy.guards import live_broadcast_problems, warn_public_rpc
 from deploy.sdk_session import open_session
 from deploy.state import load_state, save_state
 from deploy.steps import all_steps
+from deploy.rehearsal import rehearse
 from deploy.verification import verify
 
 
@@ -46,6 +47,10 @@ def _parse_args(argv):
     p.add_argument("--from-step", type=int, default=None, help="resume from step N")
     p.add_argument("--only-step", type=int, default=None, help="run only step N")
     p.add_argument("--verify-only", action="store_true", help="run verification against existing state")
+    p.add_argument("--rehearse", action="store_true",
+                   help="after a --broadcast on a local fork: fund, deposit, execute the rehearsal script, check accounting, withdraw")
+    p.add_argument("--rehearse-only", action="store_true",
+                   help="run only the rehearsal stage against the vault in the recorded state (local fork, needs RPC_URL and the fork key)")
     p.add_argument("--force-restart", action="store_true", help="discard prior state for this strategy")
     p.add_argument("--i-understand-this-is-live", action="store_true",
                    help="required for --broadcast against any node that is not a local fork")
@@ -61,7 +66,11 @@ def main(argv=None):
         warn_public_rpc(os.environ.get("RPC_URL", ""))
     cfg = load_strategy(args.strategy_json)
     deploy_ctx = load_context(cfg.context_name)
-    session = open_session(cfg, deploy_ctx, broadcast=args.broadcast)
+    # The rehearsal signs transactions with the fork key, so it opens a broadcast-capable session.
+    session = open_session(cfg, deploy_ctx, broadcast=args.broadcast or args.rehearse_only)
+    if (args.rehearse or args.rehearse_only) and not session.is_local_node:
+        sys.exit("--rehearse / --rehearse-only impersonate accounts and move time: they run only against a local fork "
+                 f"(anvil/hardhat); this node reports {session.client_version or 'unknown client'}.")
 
     if args.broadcast and not session.is_local_node:
         if not args.i_understand_this_is_live:
@@ -81,6 +90,14 @@ def main(argv=None):
         if not state.fusion_instance:
             sys.exit("No prior state — nothing to verify.")
         verify(cfg, deploy_ctx, session, state.fusion_instance)
+        return
+
+    if args.rehearse_only:
+        if not state.fusion_instance:
+            sys.exit("No prior state — deploy on the fork first (--broadcast), then rehearse.")
+        report = rehearse(cfg, deploy_ctx, session, state.fusion_instance, state_path)
+        if report["fail"]:
+            sys.exit(f"REHEARSAL FAILED: {len(report['fail'])} check(s) failed — the vault is not verified.")
         return
 
     steps = all_steps()
@@ -120,7 +137,12 @@ def main(argv=None):
         return
 
     if state.fusion_instance:
-        verify(cfg, deploy_ctx, session, state.fusion_instance)
+        vreport = verify(cfg, deploy_ctx, session, state.fusion_instance)
+        if args.rehearse:
+            rreport = rehearse(cfg, deploy_ctx, session, state.fusion_instance, state_path)
+            if vreport["fail"] or rreport["fail"]:
+                save_state(state_path, state)
+                sys.exit(f"NOT VERIFIED: verification fails={len(vreport['fail'])}, rehearsal fails={len(rreport['fail'])}.")
 
     if args.broadcast:
         save_state(state_path, state)

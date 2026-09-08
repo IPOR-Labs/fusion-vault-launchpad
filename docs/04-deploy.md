@@ -26,7 +26,7 @@ Steps run in this order. The **index** is what `--from-step` and `--only-step` t
 | 15 | `11_roles` | grants every `roles.grants[]` account | role admins |
 | 16 | `12_transferability` | `enableTransferShares()` if enabled at launch: irreversible | ATOMIST |
 
-After the last step a broadcast runs the verification report (§6) and prints the deployed addresses.
+After the last step a broadcast runs the verification report (§6) and prints the deployed addresses. With `--rehearse` on a local fork it then runs the rehearsal stage (§4b): the vault is used, not only read.
 
 ## 2. Command reference
 
@@ -40,6 +40,8 @@ python -m deploy <strategy.json> [flags]
 | `--broadcast` | Sends transactions. Requires `RPC_URL` and `DEPLOYER_PRIVATE_KEY`. Writes `.deploy-state/<name>.json` after every step and `.run.json` at the end. |
 | `--i-understand-this-is-live` | Required when the node is **not** a local fork (anvil, hardhat). Applies to every live chain, not only Ethereum. |
 | `--verify-only` | Reads the chain against the JSON using the recorded `fusion_instance`. Needs a state file. Re-runnable at any time. |
+| `--rehearse` | After a `--broadcast` on a **local fork only**: funds the deployer from `rehearsal.token_holder`, deposits, executes the rehearsal script's batches, checks the accounting after each, withdraws through the configured path. Exits non-zero if any check fails. |
+| `--rehearse-only` | Runs only that stage against the vault in the recorded state (local fork, `RPC_URL` and the fork key). |
 | `--from-step N` | Resume from index N. |
 | `--only-step N` | Run a single step (for example re-run `05_price_feeds`). |
 | `--force-restart` | Discard the state file for this strategy. Use before the **first** live broadcast if a rehearsal wrote state; **never** after an interrupted live run. |
@@ -71,17 +73,18 @@ Limits of a dry-run: it reads the live chain for whitelist status and address pr
 lsof -ti :8546 | xargs -r kill
 anvil --fork-url <rpc-of-target-chain> --port 8546
 
-# terminal B — broadcast against the fork with anvil's default account #0
+# terminal B — broadcast against the fork with anvil's default account #0, then use the vault
 RPC_URL=http://127.0.0.1:8546 \
 DEPLOYER_PRIVATE_KEY=0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80 \
-python -m deploy strategies/<name>.json --broadcast
+python -m deploy strategies/<name>.json --broadcast --rehearse
 ```
 
 Expected outcome:
 
 - all 17 steps execute;
 - the verification report is green: underlying matches, fuses match (declared + standard factory-injected), window matches or "instant-only", all role grants present, **all assets price via the vault's own oracle**, **all dependency-graph edges present**, queue params satisfy every fuse family, substrate sets match and are canonical, cap correct;
-- `.deploy-state/<name>.json` holds the `fusion_instance` and every tx hash; `.run.json` holds the actions with gas.
+- the rehearsal report is green (§4b): deposit credited 1:1, every declared fuse executed, NAV consistent after each batch, withdrawal paid;
+- `.deploy-state/<name>.json` holds the `fusion_instance` and every tx hash; `.run.json` holds the actions with gas; `.rehearsal.json` holds the observations.
 
 Then diff the plan against the run:
 
@@ -97,6 +100,24 @@ Notes:
 - When the rehearsal is clean, **delete `.deploy-state/<name>.json`** (it holds fork addresses) or pass `--force-restart` on the live run.
 - Sum `gas_used` in `.run.json` to estimate what to fund the live deployer with. The shipped example used about 10.4M gas on a Base fork (the clone alone is about 8.9M); Ethereum gas prices make the same deployment far more expensive.
 
+## 4b. The rehearsal stage — what "verified" means
+
+Reading configuration back proves the vault is configured. It does not prove the vault works: a granted substrate the fuse cannot act on, a market counted twice, or a withdrawal path that cannot pay all pass every read-back check. The rehearsal stage (`deploy/rehearsal.py`, rules in `deploy/rehearsal_rules.py`) uses the vault on the fork:
+
+| Step | What happens | Fails when |
+|---|---|---|
+| Roles | the deployer receives `ALPHA`, `WHITELIST` and balance-updater roles for the rehearsal (fork only) | a grant reverts |
+| Fund | `rehearsal.token_holder` is impersonated and sends `rehearsal.deposit_underlying` to the deployer | the holder is short |
+| Deposit | `approve` + `deposit` | `totalAssets` does not rise by exactly the deposit (share rounding aside), or no shares are minted |
+| Coverage | the script's batches are collected | a declared fuse is exercised by no batch (unless listed in `rehearsal.allow_unexercised`) |
+| Execute | each batch is sent; then `updateMarketsBalances` on every market | NAV moves more than `rehearsal.max_nav_drift_bps` (up = a market counted twice, down = value not tracked or overpaid); cached NAV ≠ refreshed NAV (dependency graph incomplete); any market worth more than the vault |
+| Unwind | the script's `unwind` batches, for leveraged vaults | same checks |
+| Withdraw | instant: `withdraw(min(half the deposit, maxWithdraw))`; scheduled: `requestShares` → +1h → `releaseFunds(timestamp, shares)` by the Alpha → `redeemFromRequest` | the payout is short, or NAV does not drop by the payout |
+
+The batches come from `rehearsal.script`, a Python file built on the SDK fuse wrappers (`rehearsals/<name>.py`; copy the nearest SDK walk from `ipor-fusion.py/tests/test_simulate_*.py`). The stage never runs against a live chain: it impersonates accounts and moves time.
+
+Re-running the stage on a used fork vault accumulates deposits; for a clean claim, `make clean-state`, restart anvil, and broadcast again.
+
 ## 5. Live broadcast
 
 Pre-flight, every item:
@@ -108,6 +129,7 @@ Pre-flight, every item:
 - [ ] `RPC_URL` in `.env` is a **private** endpoint for the target chain.
 - [ ] `DEPLOYER_PRIVATE_KEY` is in `.env` and the account is funded on the target chain.
 - [ ] The state file for this strategy is gone or `--force-restart` is passed.
+- [ ] `signoff.roles_reviewed`, `signoff.hardening_ack` and `signoff.frontend_listing_ack` are `true`, each set after the human's own words (`docs/05-human-in-the-loop.md` §4).
 - [ ] **The human has said "yes" to this exact file in this session.**
 
 Broadcast, detached, with logs:
@@ -145,7 +167,7 @@ Post-broadcast:
 | substrate sets: expected ⊆ on-chain, every word canonical for typed encodings | the fuse ignores the word; the venue is dead |
 | total supply cap in underlying terms | cap off by the decimals offset |
 
-The three bold rows are the **critical hazards**. They are read from the vault's own contracts, never from the shared middleware or the JSON.
+The three bold rows are the **critical hazards**. They are read from the vault's own contracts, never from the shared middleware or the JSON. The rehearsal stage (§4b) adds the behavioural checks: deposit credited, every fuse executed, no double accounting, withdrawal paid.
 
 ## 7. Recovery and re-runs
 

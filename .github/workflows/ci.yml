@@ -47,7 +47,7 @@ jobs:
           pip install -r requirements.txt
       - name: Import every module and run --help
         run: |
-          python -c "import deploy.cli, deploy.sdk_session, deploy.verification, deploy.steps; print('imports ok'); print(len(deploy.steps.all_steps()), 'steps')"
+          python -c "import deploy.cli, deploy.sdk_session, deploy.verification, deploy.rehearsal, deploy.steps; print('imports ok'); print(len(deploy.steps.all_steps()), 'steps')"
           python -m deploy --help > /dev/null
           python tools/spec_lint.py strategies/example-usdc-aave-base.json
           python tools/spec_lint.py strategies/example-wsteth-usdc-loop-base.json

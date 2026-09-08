@@ -117,7 +117,8 @@ def main(argv: list[str]) -> int:
         dry_run_ok = rehearsal_ok = live_ok = False
 
     # Foundry
-    anvil = shutil.which("anvil") or (str(Path.home() / ".foundry/bin/anvil") if (Path.home() / ".foundry/bin/anvil").exists() else None)
+    anvil = (os.environ.get("ANVIL") if os.environ.get("ANVIL") and Path(os.environ["ANVIL"]).exists() else None) \
+        or shutil.which("anvil") or (str(Path.home() / ".foundry/bin/anvil") if (Path.home() / ".foundry/bin/anvil").exists() else None)
     if anvil:
         rows.append((OK, f"anvil found at {anvil}"))
     else:

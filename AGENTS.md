@@ -12,7 +12,8 @@ Turn the human's intent into a schema-valid strategy file, prove on a dry-run an
 2. `docs/05-human-in-the-loop.md` — what only the human decides and where you must stop.
 3. `docs/02-setup.md` — then run `python tools/doctor.py` (or `make doctor`): it tells you which of the three modes (dry-run, fork rehearsal, live) the current environment supports, without printing any secret.
 4. `docs/03-strategy-json.md` — the strategy file, field by field.
-5. `docs/04-deploy.md` — dry-run, fork rehearsal, live broadcast, verification.
+5. `docs/04-deploy.md` — dry-run, fork rehearsal (deploy *and use* the vault), live broadcast, verification.
+6. `docs/10-hardening.md` — what comes after a verified vault; read it with the human before the sign-offs.
 
 If you resume work on an existing strategy, also read `strategies/<name>.json`, `strategies/<name>.md`, and `.deploy-state/<name>.json` if it exists.
 
@@ -50,13 +51,14 @@ You never print the contents of `.env`, never commit it, and never copy the key 
 | Resolve fuse availability, market ids, feed choices, dependency graph, queue params | Confirm chain, underlying, venues, target size, fee tier |
 | Write `strategies/<name>.json`; run `python tools/spec_lint.py` | Provide every address that will hold a role, and say which are multisigs |
 | Run dry-runs as often as useful | Decide whitelist-at-launch and transferability-at-launch |
-| Start anvil, run a fork rehearsal with `--broadcast`, run `tools/plan_diff.py` | Provide and fund the deployer key; choose the RPC endpoint |
+| Start anvil, run a fork rehearsal with `--broadcast --rehearse`, run `tools/plan_diff.py` | Provide and fund the deployer key; choose the RPC endpoint |
+| Propose a token holder and deposit size for the rehearsal, read from the chain | Say in their own words that they reviewed the role holders, understand hardening comes before production, and know that front-end listing needs the IPOR Labs team (`signoff.*`) |
 | Run `--verify-only` at any time | Say an explicit **"yes, deploy to <chain>"** after reviewing the dry-run plan and the fork results |
 | Re-run `--broadcast` **without** `--force-restart` to resume an interrupted live run, after confirming receipts | Approve the resumed run if any recorded transaction is missing on-chain |
 
 Two hard rules sit above the table:
 
-- **No live broadcast without all three:** a clean fork rehearsal, a `plan_diff` with no `run_only` actions, and an explicit human go-ahead in the current session for this exact file. Approval for an earlier version of the file does not carry over.
+- **No live broadcast without all of these:** a clean fork rehearsal *including the rehearsal stage* (the vault deposited into, every fuse executed, accounting checked, withdrawal paid), a `plan_diff` with no `run_only` actions, the three `signoff` flags set after the human's own words, and an explicit human go-ahead in the current session for this exact file. Approval for an earlier version of the file does not carry over.
 - **No irreversible switch without an explicit acknowledgement.** Share transferability (`transferability.enabled_at_launch: true`) cannot be undone. The file must carry `irreversible_ack: true`, and you set that only after the human has said in their own words that they understand it is one-way. Whitelist removal is not something this pipeline does at all.
 
 ## 6. The lifecycle at a glance
@@ -72,11 +74,12 @@ intent ──► strategies/<name>.md ──► strategies/<name>.json ──►
 | Intake | conversation + `templates/strategy-spec.md` | `strategies/<name>.md` | answers to `[client]` items |
 | Machine spec | write `strategies/<name>.json`; `python tools/spec_lint.py strategies/<name>.json` | validated JSON | no |
 | Dry-run | `python -m deploy strategies/<name>.json` | `.deploy-state/<name>.plan.json` | no |
-| Fork rehearsal | anvil fork + `RPC_URL=http://127.0.0.1:8546 DEPLOYER_PRIVATE_KEY=<anvil #0> python -m deploy … --broadcast` | `.deploy-state/<name>.json`, `.run.json`, verification report | no |
+| Fork rehearsal | anvil fork + `RPC_URL=http://127.0.0.1:8546 DEPLOYER_PRIVATE_KEY=<anvil #0> python -m deploy … --broadcast --rehearse` | `.deploy-state/<name>.json`, `.run.json`, `.rehearsal.json`, verification + rehearsal reports | no |
 | Plan diff | `python tools/plan_diff.py .deploy-state/<name>.plan.json .deploy-state/<name>.run.json` | exit 0/1 | no |
 | Clean state | delete `.deploy-state/<name>.json` (fork addresses) or pass `--force-restart` on the live run | — | no |
 | Live | `python -m deploy … --broadcast --i-understand-this-is-live` with real `RPC_URL` and funded key | live vault, state file | **yes** |
 | Verify | `python -m deploy … --verify-only` | report | no |
+| Harden | `docs/10-hardening.md`: edit roles/delays/fees/limits, re-run the affected steps, verify | hardened vault | **yes**, per run |
 
 Details, flags and failure modes: `docs/04-deploy.md`. Every row also exists as a make target (`make help`), so you can run `make dry-run STRATEGY=strategies/<name>.json`, `make fork`, `make rehearse`, `make diff`, `make verify` instead of remembering flags. Prefer the plain commands when you need a non-default flag.
 
@@ -98,6 +101,7 @@ Each of these produced a check that now exists. Know why.
 - A dry-run once persisted a preview clone address, so a later broadcast **skipped the real clone**. Dry-runs no longer write state; still, clear state before the first live run.
 - A universal swapper fuse was granted substrates in a **layout the fuse ignores**; every config check was green and the venue was dead. The loader enforces fuse family → encoding.
 - A public RPC stalled a live broadcast mid-sequence and hand-sent follow-ups raced nonces. Use a private RPC, run detached, and resume without `--force-restart`.
+- Every read-back check can be green on a vault that cannot be used: a substrate the fuse cannot act on, a market valued twice, a withdrawal path that cannot pay. The rehearsal stage (`--rehearse`) now deposits, executes every declared fuse, checks NAV after each batch and withdraws, on the fork, before anything is called verified.
 - A flash-loan vault passed every configuration check and reverted `HandlerNotFound()` on its first loop: nothing had registered the **callback handler** that routes Morpho's `onMorphoFlashLoan` back into the vault. The loader now refuses a `MorphoFlashLoanFuse` without its `callback_handlers[]` entry, step `03b` writes it, and verification reads it back from vault storage.
 
 ## 9. When you are unsure

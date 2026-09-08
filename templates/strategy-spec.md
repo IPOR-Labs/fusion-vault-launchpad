@@ -110,3 +110,21 @@ Filled in after the live broadcast; commit this section.
 | Who | Role | Date | Decision |
 |---|---|---|---|
 | | Strategist | | approved for fork rehearsal / approved for live deployment |
+
+## 10. Rehearsal `[agent]`
+
+- **Script**: `rehearsals/<name>.py` (built on the SDK fuse wrappers; nearest SDK walk copied: `<tests/test_simulate_….py>`)
+- **Token holder impersonated on the fork**: `<address or context key>`, deposit `<amount>` underlying
+- **Batches and the fuses each exercises**:
+- **Result** (date, fork block): deposit credited / NAV drift per batch / withdrawal paid
+
+## 11. Sign-off `[client]`
+
+Each row is set only after the human said it in their own words; quote them.
+
+| Acknowledgement | Flag | The human's words | Date |
+|---|---|---|---|
+| I have reviewed which address holds which role | `signoff.roles_reviewed` | | |
+| I know the vault must be hardened before production and that this repository helps the agent do it (`docs/10-hardening.md`) | `signoff.hardening_ack` | | |
+| I know that showing the vault on app.ipor.io requires contacting the IPOR Labs team | `signoff.frontend_listing_ack` | | |
+| Yes, deploy to `<chain>` (this file, this session) | — | | |

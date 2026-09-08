@@ -73,6 +73,12 @@
   ],
   "dependency_graph": [],
   "market_limits": [],
+  "rehearsal": {
+    "script": "rehearsals/example-wsteth-usdc-loop-base.py",
+    "token_holder": "morpho_blue",
+    "deposit_underlying": "10000",
+    "max_nav_drift_bps": 100
+  },
   "price_feeds": [
     {
       "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
@@ -119,6 +125,11 @@
   "transferability": {
     "enabled_at_launch": false,
     "irreversible_ack": false
+  },
+  "signoff": {
+    "roles_reviewed": false,
+    "hardening_ack": false,
+    "frontend_listing_ack": false
   },
   "execution": {
     "broadcast": false,

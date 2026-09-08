@@ -12,8 +12,9 @@ FORK_RPC  ?= https://mainnet.base.org
 PORT      ?= 8546
 NAME       = $(basename $(notdir $(STRATEGY)))
 ANVIL_KEY  = 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
+ANVIL     ?= anvil
 
-.PHONY: help install doctor test lint dry-run fork rehearse diff verify clean-state
+.PHONY: help install doctor test lint dry-run fork rehearse exercise diff verify clean-state
 
 help: ## list targets
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  %-14s %s\n", $$1, $$2}'
@@ -35,10 +36,13 @@ dry-run: ## simulate: validate, preview addresses, print the full plan (no key, 
 
 fork: ## start a fresh anvil fork of FORK_RPC on PORT (foreground; run in its own terminal)
 	-lsof -ti :$(PORT) | xargs -r kill
-	anvil --fork-url $(FORK_RPC) --port $(PORT)
+	$(ANVIL) --fork-url $(FORK_RPC) --port $(PORT)
 
-rehearse: ## broadcast the pipeline against the local anvil fork with anvil's test key
-	RPC_URL=http://127.0.0.1:$(PORT) DEPLOYER_PRIVATE_KEY=$(ANVIL_KEY) $(PY) -m deploy $(STRATEGY) --broadcast
+rehearse: ## broadcast the pipeline against the local anvil fork with anvil's test key, then use the vault (deposit, execute, withdraw)
+	RPC_URL=http://127.0.0.1:$(PORT) DEPLOYER_PRIVATE_KEY=$(ANVIL_KEY) $(PY) -m deploy $(STRATEGY) --broadcast --rehearse
+
+exercise: ## re-run only the rehearsal stage against the vault deployed on the fork
+	RPC_URL=http://127.0.0.1:$(PORT) DEPLOYER_PRIVATE_KEY=$(ANVIL_KEY) $(PY) -m deploy $(STRATEGY) --rehearse-only
 
 diff: ## compare the dry-run plan with the last broadcast run
 	$(PY) tools/plan_diff.py .deploy-state/$(NAME).plan.json .deploy-state/$(NAME).run.json

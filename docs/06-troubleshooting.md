@@ -48,6 +48,14 @@ Symptoms first, then cause and fix.
 | Verification: `NON-CANONICAL … substrate` | words in a layout the fuse does not read | re-encode with the right encoding; re-grant |
 | Verification: `cap MISMATCH` | cap set in underlying decimals | use `total_supply_cap_underlying`; re-run `--only-step 3` |
 | Verification: `unexpected fuses on-chain` | a fuse present that is neither declared nor standard | investigate; if it is a newer standard fuse, add it to the context's `standard_fuses` |
+| `--rehearse` refuses: `runs only against a local fork` | `RPC_URL` points at a live node | rehearse against anvil; the stage impersonates accounts and moves time |
+| Rehearsal: `rehearsal.token_holder is required` or `has less than … of the underlying` | no holder configured, or it is short at this block | pick a contract or account holding plenty of the underlying (read `balanceOf` on the fork) and set `rehearsal.token_holder` |
+| Rehearsal: `declared but never executed on the fork` | a fuse has no batch in the rehearsal script | add a batch that uses it, or list it under `rehearsal.allow_unexercised` with a reason in the `.md` |
+| Rehearsal: `totalAssets moved up … counted twice` | a market is valued by two balance fuses, or a token is both idle and in a market | check `balance_fuses` and the `ERC20_VAULT_BALANCE` substrates |
+| Rehearsal: `cached totalAssets != refreshed` | the dependency graph misses an edge for a market the batch touched | add the edge under `dependency_graph`, re-run `--only-step 8` |
+| Rehearsal execute reverts `UniversalTokenSwapperFuseSlippageFail()` `0xda648573` | the swap's execution price is too far from the vault oracle, typically a swap too large for the pool, or a re-run on a used fork vault that keeps growing the position | size the loop from `env.deposit`, not from everything idle; lower `rehearsal.deposit_underlying`; start a fresh fork |
+| Rehearsal withdrawal reverts on `request(uint256)` | the deployed WithdrawManager is shares-based | the stage uses `requestShares` → `releaseFunds(timestamp, shares)` → `redeemFromRequest`; update the repo |
+| `Refusing to broadcast to a live chain: signoff.… is not true` | a sign-off acknowledgement is missing | collect it from the human in their own words (`docs/05-human-in-the-loop.md` §4) and set the flag |
 | `plan_diff` reports `run_only` | the broadcast did something the plan did not declare | stop; compare artifacts; usually a config change between dry-run and broadcast |
 | `nonce too low` / stalled confirmations on a live chain | public RPC | private RPC; run detached; resume **without** `--force-restart` |
 

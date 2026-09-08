@@ -9,4 +9,4 @@ web3==7.16.0
 eth-abi==5.2.0
 eth-utils==6.0.0
 jsonschema==4.26.0
-python-dotenv==1.2.2
+python-dotenv==1.2.3

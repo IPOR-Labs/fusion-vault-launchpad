@@ -1,9 +1,99 @@
+# ---------------------------------------------------------------------------
+# Secrets and local configuration
+# ---------------------------------------------------------------------------
 .env
 .env.local
 .env.*.local
+*.pem
+*.key
+
+# ---------------------------------------------------------------------------
+# Pipeline artifacts (fork addresses, live state, reports)
+# ---------------------------------------------------------------------------
 .deploy-state/
-.venv/
+*.log
+
+# ---------------------------------------------------------------------------
+# Python
+# ---------------------------------------------------------------------------
 __pycache__/
-*.pyc
+*.py[cod]
+*$py.class
+*.egg-info/
+*.egg
+build/
+dist/
+.eggs/
+.venv/
+venv/
+env/
+.python-version
+
+# Testing and tooling caches
 .pytest_cache/
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+.hypothesis/
+.tox/
+.nox/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# ---------------------------------------------------------------------------
+# IDEs and editors
+# Note: .cursor/rules, .windsurf/rules, .grok/ and .github/copilot-instructions.md
+# are tracked on purpose (agent instructions); do not ignore them.
+# ---------------------------------------------------------------------------
+# JetBrains (PyCharm, IntelliJ)
+.idea/
+*.iml
+
+# Visual Studio Code
+.vscode/
+*.code-workspace
+
+# Vim / Neovim
+*.swp
+*.swo
+*~
+Session.vim
+
+# Emacs
+\#*\#
+.\#*
+
+# Sublime Text
+*.sublime-workspace
+
+# Eclipse / PyDev
+.project
+.pydevproject
+.settings/
+
+# ---------------------------------------------------------------------------
+# Operating systems
+# ---------------------------------------------------------------------------
+# macOS
 .DS_Store
+.AppleDouble
+._*
+
+# Windows
+Thumbs.db
+Desktop.ini
+
+# Linux
+.directory
+.Trash-*
+
+# ---------------------------------------------------------------------------
+# Misc
+# ---------------------------------------------------------------------------
+*.tmp
+*.bak
+*.orig

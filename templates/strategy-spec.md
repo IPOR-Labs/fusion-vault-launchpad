@@ -35,6 +35,12 @@ One row per market the vault may touch. Confirm each fuse on the chain's `FuseWh
 
 Dependency graph: derived (every market → idle balance). Extra edges, if any:
 
+Callback handlers (only for fuses that make a protocol call the vault back, e.g. Morpho flash loans; `deploy/callbacks.py` lists the required pairs):
+
+| Fuse | Handler | Sender | Signature |
+|---|---|---|---|
+| | | | |
+
 ## 4. Pricing `[agent]`
 
 | Asset | Feed type | Feed / factory params | `updatedAt` checked on |

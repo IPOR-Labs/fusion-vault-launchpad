@@ -110,6 +110,19 @@
         }
       }
     },
+    "callback_handlers": {
+      "type": "array",
+      "description": "Protocol callbacks the vault must route during execute(). Required for every fuse listed in deploy/callbacks.py::REQUIRED_CALLBACKS (Morpho flash loans); the loader refuses the file otherwise.",
+      "items": {
+        "type": "object",
+        "required": ["handler", "sender", "signature"],
+        "properties": {
+          "handler": {"type": "string", "description": "name from the context's callback_handlers map, e.g. CallbackHandlerMorpho"},
+          "sender": {"type": "string", "description": "the contract that calls the vault back: an address, or a top-level context key such as morpho_blue"},
+          "signature": {"type": "string", "pattern": "^[A-Za-z_][A-Za-z0-9_]*\\([A-Za-z0-9_\\[\\],]*\\)$", "description": "canonical callback signature, e.g. onMorphoFlashLoan(uint256,bytes)"}
+        }
+      }
+    },
     "dependency_graph": {
       "type": "array",
       "items": {

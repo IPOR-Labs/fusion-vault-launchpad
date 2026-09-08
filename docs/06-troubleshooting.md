@@ -28,6 +28,8 @@ Symptoms first, then cause and fix.
 | `fees.recipients split_bps must sum to 10000` | arithmetic | fix the splits |
 | `transferability.enabled_at_launch requires irreversible_ack=true` | safety rule | set the ack only after the human accepted irreversibility |
 | `universal token swapper: …` | fuse family ≠ substrate encoding, or mixed families on one market | one family per market; typed → `universal_typed_substrate`, WithVerification → `universal_selector_substrate`, legacy → `address` |
+| `callback handlers: MorphoFlashLoanFuse needs callback_handlers entry …` | a flash-loan fuse is declared without the handler that routes its callback | add the entry the message spells out (`docs/03-strategy-json.md` → `callback_handlers[]`) and make sure the context has the handler address |
+| `callback handler '<Name>' missing from context` | the context has no `callback_handlers` map, or the name differs from `ipor-abi` | add it from `mainnet/<deployment>/addresses.json` |
 | `spec-lint … ❌ vault.name … not found in markdown` | the `.md` and `.json` drifted | align name and symbol in both |
 | `instant-withdraw queue params too short for fuse family` | missing params in `instant_withdrawal.order[]` | see `deploy/fuses.py::QUEUE_MIN_PARAMS` |
 
@@ -39,9 +41,10 @@ Symptoms first, then cause and fix.
 | `01_clone already cloned at … — skipping` on a first live run | stale state from a rehearsal | delete `.deploy-state/<name>.json` or pass `--force-restart` **before** the first live broadcast |
 | Every step "succeeds" instantly, nothing on-chain | same as above | same fix; then verify the vault actually exists at the recorded address |
 | `01b: failed to grant […]` | role admin not yet held by the deployer (RPC propagation) | re-run with `--from-step 2 --broadcast …` |
-| `05_price_feeds` `CRITICAL HAZARD: assets unpriceable via vault oracle` | a valued asset has no source on the vault's own oracle and no fallback | fix the `price_feeds` entry (check the feed is live with `latestRoundData()`), re-run `--only-step 8` |
+| `05_price_feeds` `CRITICAL HAZARD: assets unpriceable via vault oracle` | a valued asset has no source on the vault's own oracle and no fallback | fix the `price_feeds` entry (check the feed is live with `latestRoundData()`), re-run `--only-step 9` |
 | `WithdrawWindowLengthCannotBeZero` | attempted to set window 0 | leave `window_seconds: 0`; the deployer skips the call for instant-only |
-| Verification: `MISSING dependency-graph edges` | graph written incompletely | re-run `--only-step 7` |
+| Verification: `MISSING dependency-graph edges` | graph written incompletely | re-run `--only-step 8` |
+| Verification: `MISSING callback handlers`, or the Alpha's first flash loan reverts `HandlerNotFound()` `0x4bf4de4e` | `updateCallbackHandler` was never sent for that `(sender, selector)` | add / fix the `callback_handlers[]` entry, re-run `--only-step 7 --broadcast …`, then `--verify-only` |
 | Verification: `NON-CANONICAL … substrate` | words in a layout the fuse does not read | re-encode with the right encoding; re-grant |
 | Verification: `cap MISMATCH` | cap set in underlying decimals | use `total_supply_cap_underlying`; re-run `--only-step 3` |
 | Verification: `unexpected fuses on-chain` | a fuse present that is neither declared nor standard | investigate; if it is a newer standard fuse, add it to the context's `standard_fuses` |

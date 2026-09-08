@@ -59,6 +59,10 @@
     "UpdateBalancesIgnoreDustPreHook": "0x0CF053385492FeF81e538F849E1e5308bEFC1A5C",
     "PauseFunctionPreHook": "0x7846BeD0b55048dB0e6A5388B89E92f091984D59"
   },
+  "callback_handlers": {
+    "CallbackHandlerMorpho": "0x4f9Cc0d7432B66EACa58064a2F0EA663A2F0b465",
+    "CallbackHandlerEuler": "0xB13BA9E4e93314025D43072f9ac51474C7Eab293"
+  },
   "markets": {
     "AAVE_V3": 1,
     "SPARK_LEND": 44,

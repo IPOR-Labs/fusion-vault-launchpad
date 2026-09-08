@@ -12,6 +12,7 @@ from ipor_fusion.core.plasma_vault import PlasmaVault
 from ipor_fusion.core.withdraw_manager import WithdrawManager
 
 from deploy.encoders.feeds import build_get_source_of_asset_price, build_get_asset_price
+from deploy.callbacks import handler_from_slot_word, storage_slot_for
 from deploy.encoders.substrates import encode_substrates, canonical_check
 from deploy.fuses import queue_param_problems
 from deploy.fuses import classify_fuses
@@ -202,6 +203,28 @@ def verify(cfg, deploy_ctx, session, instance) -> dict:
         _ok(f"all {sub_ok} substrate sets matched (subset)")
     else:
         _warn(f"substrate mismatches: ok={sub_ok} warn={sub_warn}")
+
+    # 6b. callback handlers — CRITICAL HAZARD POINT for flash-loan strategies.
+    # Read from the vault's storage (there is no getter): a missing handler passes
+    # every other check and reverts HandlerNotFound() on the first flash loan.
+    cb_entries = cfg.raw.get("callback_handlers", [])
+    if cb_entries:
+        cb_missing = []
+        for e in cb_entries:
+            try:
+                want = deploy_ctx.callback_handler(e["handler"]).lower()
+                sender = deploy_ctx.resolve_address(e["sender"])
+                word = session.ctx.web3.eth.get_storage_at(
+                    Web3.to_checksum_address(vault_addr), storage_slot_for(sender, e["signature"]))
+                got = handler_from_slot_word(word)
+                if got != want:
+                    cb_missing.append(f"{e['handler']} for {e['sender']}:{e['signature']} (on-chain {got})")
+            except Exception as ex:
+                cb_missing.append(f"{e.get('handler')}:{e.get('signature')} read failed: {ex}")
+        if not cb_missing:
+            _ok(f"all {len(cb_entries)} callback handlers registered (read from vault storage)")
+        else:
+            _fail(f"MISSING callback handlers — first flash loan would revert HandlerNotFound(): {cb_missing}")
 
     # 7. total supply cap — DECIMALS-SAFE check. The cap is in SHARE units
     # (underlying decimals + offset); reading it back in human underlying terms

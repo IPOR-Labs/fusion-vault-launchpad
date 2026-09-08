@@ -9,7 +9,9 @@ Everything this repository depends on, and where to look things up. Nothing here
 | [docs.ipor.io](https://docs.ipor.io) | Protocol documentation: PlasmaVault, fuses, roles, oracles, withdrawals, fees, audits. Append `.md` to any page URL for Markdown; `https://docs.ipor.io/llms.txt` indexes the site for language models. |
 | [`IPOR-Labs/ipor-fusion`](https://github.com/IPOR-Labs/ipor-fusion) | Solidity source of the vault, managers, fuses and `Roles.sol`. Read fuse source on `main` for substrate layouts and enter/exit params. |
 | [`IPOR-Labs/ipor-abi`](https://github.com/IPOR-Labs/ipor-abi) | Deployed addresses per chain (`mainnet/<deployment>/addresses.json`), ABIs, and the README fuse lists. The source for `contexts/*.json`. |
-| [`IPOR-Labs/ipor-fusion.py`](https://github.com/IPOR-Labs/ipor-fusion.py) / [PyPI `ipor-fusion`](https://pypi.org/project/ipor-fusion/) | The Python SDK this pipeline uses (`FusionFactory`, `Web3Context`, market ids). Its CLI also offers read-only vault inspection, for example `ipor-fusion vault health <address>`. |
+| [`IPOR-Labs/ipor-fusion.py`](https://github.com/IPOR-Labs/ipor-fusion.py) / [PyPI `ipor-fusion`](https://pypi.org/project/ipor-fusion/) | The Python SDK this pipeline uses (`FusionFactory`, `Web3Context`, market ids, fuse wrappers, `VaultSimulator`). Its `fusion` CLI offers read-only vault inspection. |
+| [`skills/ipor-deploy-vault/SKILL.md`](https://github.com/IPOR-Labs/ipor-fusion.py/blob/main/skills/ipor-deploy-vault/SKILL.md) in the SDK repo | The SDK's own agent skill: the invariants whose violation is a revert (with selectors), the clone → roles → market → deposit → execute walk in eleven transactions, and the factory proxy table per chain. Read it before writing any code that talks to a vault directly rather than through this pipeline. |
+| `https://mcp.ipor.io/mcp` (hosted, read-only) and `fusion-mcp` (bundled with `pip install 'ipor-fusion[mcp]'`) | MCP servers that inspect live vaults, resolve fuse addresses by registry name (`fusion_address_lookup`), and read Morpho markets. They deploy nothing. `fusion-mcp` also serves the SDK guide as `fusion://invariants` and `fusion://quickstart`. |
 | [`IPOR-Labs/ipor-fusion-alpha-example`](https://github.com/IPOR-Labs/ipor-fusion-alpha-example) | Reference implementation of an Alpha (the bot that executes fuse actions). Out of scope here, but the natural next step after deployment. |
 | [app.ipor.io](https://app.ipor.io) | The web application; useful to inspect a deployed vault and, for role holders, to perform configuration actions by hand. |
 
@@ -37,6 +39,17 @@ Everything this repository depends on, and where to look things up. Nothing here
 ## External protocols
 
 When a strategy touches a protocol, the protocol's own documentation and address lists are the source of truth for market ids, oracles, pool and vault addresses. Common ones: Aave, Morpho, Euler, Spark, Fluid, Odos, Chainlink feeds. Always confirm a feed's `updatedAt` on-chain before using it.
+
+## After deployment: operating the vault
+
+This repository stops at a verified, configured vault. Moving funds is the Alpha's job, through the SDK:
+
+| Need | Where |
+|---|---|
+| Encode a fuse action (`AaveV3SupplyFuse.supply`, `MorphoFlashLoanFuse.flash_loan`, `UniversalTokenSwapperFuse.swap`, …) and send `PlasmaVault.execute` | `ipor_fusion.fuses` and `ipor_fusion.PlasmaVault` in the SDK |
+| Prove a strategy step before sending it, with no fork and no key | `ipor_fusion.VaultSimulator` (`eth_simulateV1`); the SDK's `tests/test_simulate_vault_from_scratch_base.py` shows a full clone-to-execute batch |
+| A ready-to-run bot skeleton | [`ipor-fusion-alpha-example`](https://github.com/IPOR-Labs/ipor-fusion-alpha-example) |
+| Flash-loan strategies | the vault must route the callback: `callback_handlers[]` in the strategy file (`docs/03-strategy-json.md`); the loop example shows the Morpho case |
 
 ## What is out of scope here, and where to go
 

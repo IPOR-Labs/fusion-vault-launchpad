@@ -11,6 +11,7 @@ import jsonschema  # REQUIRED — schema validation is part of the deploy contra
 # if this import fails, install deps (see requirements.txt) rather than degrade.
 
 
+from deploy.callbacks import callback_problems
 from deploy.swapper import swapper_problems
 
 SCHEMA_PATH = Path(__file__).resolve().parent.parent / "schema" / "strategy.schema.json"
@@ -77,3 +78,7 @@ def _semantic_checks(cfg: dict[str, Any]) -> None:
     problems = swapper_problems([f["name"] for f in cfg.get("fuses", [])], cfg.get("substrates", []))
     if problems:
         raise ValueError("universal token swapper: " + "; ".join(problems))
+
+    problems = callback_problems([f["name"] for f in cfg.get("fuses", [])], cfg.get("callback_handlers", []))
+    if problems:
+        raise ValueError("callback handlers: " + "; ".join(problems))

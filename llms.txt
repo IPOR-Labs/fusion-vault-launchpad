@@ -23,6 +23,8 @@
 
 - [Example strategy (JSON)](https://raw.githubusercontent.com/IPOR-Labs/fusion-vault-launchpad/main/strategies/example-usdc-aave-base.json): A placeholder single-venue USDC vault on Base; every address is an anvil test account and the pipeline refuses it on a live chain.
 - [Example strategy (human spec)](https://raw.githubusercontent.com/IPOR-Labs/fusion-vault-launchpad/main/strategies/example-usdc-aave-base.md): The matching human-readable spec.
+- [Loop example strategy (JSON)](https://raw.githubusercontent.com/IPOR-Labs/fusion-vault-launchpad/main/strategies/example-wsteth-usdc-loop-base.json): A placeholder leveraged wstETH/USDC loop on Morpho Blue (Base): collateral, borrow and flash-loan fuses, the flash-loan callback handler, the legacy universal swapper, scheduled withdrawals.
+- [Loop example strategy (human spec)](https://raw.githubusercontent.com/IPOR-Labs/fusion-vault-launchpad/main/strategies/example-wsteth-usdc-loop-base.md): The matching human-readable spec, including what the Alpha does after deployment.
 - [Strategy spec template](https://raw.githubusercontent.com/IPOR-Labs/fusion-vault-launchpad/main/templates/strategy-spec.md): The shape of a human spec, with provenance tags.
 - [Strategy JSON schema](https://raw.githubusercontent.com/IPOR-Labs/fusion-vault-launchpad/main/schema/strategy.schema.json): Validation schema for strategy files.
 - [Base chain context](https://raw.githubusercontent.com/IPOR-Labs/fusion-vault-launchpad/main/contexts/base-fusion.json): Addresses for Base (factory, fuses, feed factories, pre-hooks).
@@ -33,3 +35,7 @@
 
 - [Contributing](https://raw.githubusercontent.com/IPOR-Labs/fusion-vault-launchpad/main/CONTRIBUTING.md): Ground rules, adding chains, fuses and steps.
 - [IPOR Fusion documentation index](https://docs.ipor.io/llms.txt): The protocol documentation, indexed for language models.
+- [SDK agent skill: deploy and operate a vault](https://raw.githubusercontent.com/IPOR-Labs/ipor-fusion.py/main/skills/ipor-deploy-vault/SKILL.md): The Python SDK's own walk (clone, roles, market, deposit, execute), its invariants and revert selectors, and the factory proxy per chain. What to read for operating a vault after this toolkit has created it.
+- [SDK README](https://raw.githubusercontent.com/IPOR-Labs/ipor-fusion.py/main/README.md): Fuse wrappers, VaultSimulator (eth_simulateV1), the fusion CLI, the hosted read-only MCP server at https://mcp.ipor.io/mcp.
+- [Deployed addresses and ABIs (ipor-abi)](https://github.com/IPOR-Labs/ipor-abi): The registry the contexts/ files are a cache of: mainnet/<deployment>/addresses.json per chain and the fuse lists in the README.
+- [Alpha example bot](https://github.com/IPOR-Labs/ipor-fusion-alpha-example): A runnable strategy bot that operates an existing vault.

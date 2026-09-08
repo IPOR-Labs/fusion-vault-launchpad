@@ -53,6 +53,10 @@
     "UpdateBalancesPreHook": "0x7f9179DC81cd0dBE6488eCD192cf37d2B9530F0C",
     "PauseFunctionPreHook": "0x10e64e5F2f2BD098F31849B48d0BA1B92331cE88"
   },
+  "callback_handlers": {
+    "CallbackHandlerMorpho": "0x314E23a66a07644e6c3Fd1a383bc3d9351C884dD",
+    "CallbackHandlerEulerV2": "0x64ecA0c58F4371f73921F51081F0960b982c7532"
+  },
   "markets": {
     "AAVE_V3": 1,
     "ERC20_VAULT_BALANCE": 7,

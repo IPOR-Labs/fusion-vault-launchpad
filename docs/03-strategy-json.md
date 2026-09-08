@@ -1,6 +1,6 @@
 # 03 — The strategy file: `strategies/<name>.json` and chain contexts
 
-The deployer reads exactly two files: the strategy JSON and the chain context it names. Nothing strategy-specific lives in code. The schema is `schema/strategy.schema.json`; the worked example is `strategies/example-usdc-aave-base.json` with its human spec `strategies/example-usdc-aave-base.md`.
+The deployer reads exactly two files: the strategy JSON and the chain context it names. Nothing strategy-specific lives in code. The schema is `schema/strategy.schema.json`. Two worked examples ship: `strategies/example-usdc-aave-base.json` (single venue, instant withdrawals) and `strategies/example-wsteth-usdc-loop-base.json` (collateralised Morpho loop with a flash-loan callback handler, legacy swapper, scheduled withdrawals), each with its human spec `.md`.
 
 ## 1. Two files per strategy
 
@@ -28,6 +28,7 @@ python -m deploy strategies/<name>.json               # schema + semantic checks
 | `transferability.enabled_at_launch` without `irreversible_ack: true` | `requires irreversible_ack=true` |
 | the underlying has no `price_feeds` entry | `underlying <addr> missing from price_feeds` |
 | a Universal Token Swapper fuse family does not match its substrate encoding, or families are mixed on one market | `universal token swapper: …` |
+| a fuse that needs a callback handler (`MorphoFlashLoanFuse`) has no matching `callback_handlers[]` entry | `callback handlers: …` |
 
 Before a **live** broadcast, `deploy/guards.py` additionally refuses any configuration in which the signer, `vault.initial_owner_override`, a `roles.grants[].account`, a `whitelist.initial_accounts[]` entry or a `fees.recipients[].address` is one of anvil's ten default accounts.
 
@@ -102,6 +103,18 @@ Every market you act on needs a balance fuse. Include `ERC20_VAULT_BALANCE` with
 | `aave_v4_substrate` | `{spoke, reserve_id, is_collateral, can_borrow}` | Aave V4 |
 
 The **Universal Token Swapper encoding is dictated by the fuse family, not the market**. A word in the wrong layout is silently ignored by the fuse and every swap reverts. `deploy/swapper.py` enforces name → encoding at load; `--verify-only` fails on non-canonical words.
+
+### `callback_handlers[]`
+
+`{handler, sender, signature}`. Some fuses make an external protocol call the vault **back** in the middle of `execute()`; a Morpho flash loan calls `onMorphoFlashLoan(uint256,bytes)`. The vault only accepts such a call if a handler is registered for that `(sender, selector)` pair; otherwise it reverts `HandlerNotFound()` (`0x4bf4de4e`) on the first flash loan, after every other check has passed. Nothing else in the configuration reveals the gap, which is why the loader enforces it.
+
+| Key | Notes |
+|---|---|
+| `handler` | name from the context's `callback_handlers` map (`CallbackHandlerMorpho`, …), as in the `ipor-abi` addresses file |
+| `sender` | the contract that calls back: an address, or a top-level context key such as `morpho_blue` |
+| `signature` | canonical callback signature, no spaces or parameter names: `onMorphoFlashLoan(uint256,bytes)` |
+
+Required pairs live in `deploy/callbacks.py::REQUIRED_CALLBACKS`; today: `MorphoFlashLoanFuse` → `CallbackHandlerMorpho` for `morpho_blue` on `onMorphoFlashLoan(uint256,bytes)`. Step `03b_callback_handlers` writes the entries (`FUSE_MANAGER_ROLE`), skipping any the vault already routes, and `--verify-only` reads them back from vault storage (the contract has no getter). See `strategies/example-wsteth-usdc-loop-base.json`.
 
 ### `dependency_graph[]`
 
@@ -187,7 +200,7 @@ Schema: `schema/deploy-context.schema.json`.
 | `middleware_owner` | holder of the manager role on the shared middleware; used only to impersonate on a fork, nullable |
 | `fusion_factory`, `price_oracle_middleware`, `fuse_whitelist` | proxy addresses |
 | `standard_fuses[]` | factory-injected fuses, **oldest → newest** |
-| `price_feed_factories{}`, `fuses{}`, `pre_hooks{}` | name → address |
+| `price_feed_factories{}`, `fuses{}`, `pre_hooks{}`, `callback_handlers{}` | name → address (`callback_handlers`: `CallbackHandlerMorpho`, `CallbackHandlerEuler…`) |
 | `markets{}` | market name → id overrides (else the SDK's `IporFusionMarkets`) |
 | `morpho_blue`, `aave_v3_pool`, `tokens{}`, `morpho_oracles{}` | convenience |
 

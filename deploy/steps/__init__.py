@@ -13,6 +13,7 @@ _STEP_MODULES = [
     "s02_add_fuses",
     "s02b_standard_fuses",
     "s03_grant_substrates",
+    "s03b_callback_handlers",
     "s04_balance_fuses",
     "s05_price_feeds",
     "s06_withdraw_manager",

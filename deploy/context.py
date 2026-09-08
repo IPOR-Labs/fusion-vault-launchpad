@@ -68,6 +68,23 @@ class DeployContext:
             raise KeyError(f"pre-hook '{name}' missing from context '{self.name}'")
         return Web3.to_checksum_address(addr)
 
+    def callback_handler(self, name: str) -> ChecksumAddress:
+        """Stateless callback-handler contract (e.g. CallbackHandlerMorpho) by ipor-abi name."""
+        addr = self.raw.get("callback_handlers", {}).get(name)
+        if not addr:
+            raise KeyError(f"callback handler '{name}' missing from context '{self.name}' "
+                           f"(add it under callback_handlers from ipor-abi addresses.json)")
+        return Web3.to_checksum_address(addr)
+
+    def resolve_address(self, ref: str) -> ChecksumAddress:
+        """An address literal, or the name of a top-level context address such as `morpho_blue`."""
+        if isinstance(ref, str) and ref.startswith("0x"):
+            return Web3.to_checksum_address(ref)
+        val = self.raw.get(ref)
+        if isinstance(val, str) and val.startswith("0x"):
+            return Web3.to_checksum_address(val)
+        raise KeyError(f"'{ref}' is neither an address nor a top-level address key in context '{self.name}'")
+
     def price_feed_factory(self, name: str) -> ChecksumAddress:
         addr = self.raw["price_feed_factories"].get(name)
         if not addr:

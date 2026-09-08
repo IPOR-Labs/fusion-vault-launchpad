@@ -65,3 +65,20 @@ def test_public_rpc_hosts_are_flagged(capsys):
     assert "PUBLIC endpoint" in capsys.readouterr().out
     warn_public_rpc("https://eth-mainnet.g.alchemy.com/v2/key")
     assert capsys.readouterr().out == ""
+
+
+# --- flash-loan callback wiring (deploy.callbacks, enforced at load) ---
+def test_flash_loan_fuse_requires_callback_handler_entry():
+    cfg = _base()
+    cfg["fuses"] = [{"name": "MorphoFlashLoanFuse"}]
+    with pytest.raises(ValueError, match="callback handlers"):
+        _semantic_checks(cfg)
+
+
+def test_flash_loan_fuse_with_callback_handler_ok():
+    cfg = _base()
+    cfg["fuses"] = [{"name": "MorphoFlashLoanFuse"}]
+    cfg["callback_handlers"] = [
+        {"handler": "CallbackHandlerMorpho", "sender": "morpho_blue", "signature": "onMorphoFlashLoan(uint256,bytes)"}
+    ]
+    _semantic_checks(cfg)

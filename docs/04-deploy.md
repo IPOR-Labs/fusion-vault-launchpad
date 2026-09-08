@@ -15,15 +15,16 @@ Steps run in this order. The **index** is what `--from-step` and `--only-step` t
 | 4 | `02_add_fuses` | `addFuses` for every `fuses[].name`, gated on the on-chain `FuseWhitelist` | FUSE_MANAGER |
 | 5 | `02b_standard_fuses` | upgrades factory-injected standard fuses to the newest in the context | FUSE_MANAGER |
 | 6 | `03_grant_substrates` | `grantMarketSubstrates` per market with the declared encoding | FUSE_MANAGER / ATOMIST |
-| 7 | `04_balance_fuses` | `addBalanceFuse` per market and `updateDependencyBalanceGraphs` with the **derived** graph | FUSE_MANAGER |
-| 8 | `05_price_feeds` | deploys factory feeds, registers sources on the **vault's own** price manager, skips assets it already prices; refuses to finish while any asset is unpriceable | PRICE_ORACLE_MIDDLEWARE_MANAGER on the vault's manager |
-| 9 | `06_withdraw_manager` | `updateWithdrawWindow`; skipped when `window_seconds == 0` | ATOMIST |
-| 10 | `07_fees` | supplemental fees and recipients | fee roles |
-| 11 | `08_instant_withdrawal` | `configureInstantWithdrawalFuses` in queue order | CONFIG_INSTANT_WITHDRAWAL_FUSES |
-| 12 | `09_pre_hooks` | `setPreHookImplementations` | PRE_HOOKS_MANAGER |
-| 13 | `10_whitelist` | grants `WHITELIST_ROLE` to `whitelist.initial_accounts` | ATOMIST |
-| 14 | `11_roles` | grants every `roles.grants[]` account | role admins |
-| 15 | `12_transferability` | `enableTransferShares()` if enabled at launch: irreversible | ATOMIST |
+| 7 | `03b_callback_handlers` | `updateCallbackHandler` for every `callback_handlers[]` entry (flash-loan callbacks); skips entries the vault already routes, read from its storage | FUSE_MANAGER |
+| 8 | `04_balance_fuses` | `addBalanceFuse` per market and `updateDependencyBalanceGraphs` with the **derived** graph | FUSE_MANAGER |
+| 9 | `05_price_feeds` | deploys factory feeds, registers sources on the **vault's own** price manager, skips assets it already prices; refuses to finish while any asset is unpriceable | PRICE_ORACLE_MIDDLEWARE_MANAGER on the vault's manager |
+| 10 | `06_withdraw_manager` | `updateWithdrawWindow`; skipped when `window_seconds == 0` | ATOMIST |
+| 11 | `07_fees` | supplemental fees and recipients | fee roles |
+| 12 | `08_instant_withdrawal` | `configureInstantWithdrawalFuses` in queue order | CONFIG_INSTANT_WITHDRAWAL_FUSES |
+| 13 | `09_pre_hooks` | `setPreHookImplementations` | PRE_HOOKS_MANAGER |
+| 14 | `10_whitelist` | grants `WHITELIST_ROLE` to `whitelist.initial_accounts` | ATOMIST |
+| 15 | `11_roles` | grants every `roles.grants[]` account | role admins |
+| 16 | `12_transferability` | `enableTransferShares()` if enabled at launch: irreversible | ATOMIST |
 
 After the last step a broadcast runs the verification report (§6) and prints the deployed addresses.
 
@@ -78,7 +79,7 @@ python -m deploy strategies/<name>.json --broadcast
 
 Expected outcome:
 
-- all 16 steps execute;
+- all 17 steps execute;
 - the verification report is green: underlying matches, fuses match (declared + standard factory-injected), window matches or "instant-only", all role grants present, **all assets price via the vault's own oracle**, **all dependency-graph edges present**, queue params satisfy every fuse family, substrate sets match and are canonical, cap correct;
 - `.deploy-state/<name>.json` holds the `fusion_instance` and every tx hash; `.run.json` holds the actions with gas.
 
@@ -125,6 +126,7 @@ Post-broadcast:
 3. `python tools/plan_diff.py .deploy-state/<name>.plan.json .deploy-state/<name>.run.json`.
 4. Copy the deployed addresses (vault, access manager, withdraw manager, fee manager, price manager) into the `.md` spec and commit the `.md` and `.json`.
 5. Make the first deposit from a whitelisted account and confirm `totalAssets()` moves.
+6. Hand the vault to the Alpha. Operating it (executing fuse actions, simulating a step before sending it) is the SDK's job, not this repository's; the pointers are in `docs/07-resources.md` §"After deployment".
 
 ## 6. What the verification report checks
 
@@ -138,11 +140,12 @@ Post-broadcast:
 | every `roles.grants` present | a grant failed or RPC lag |
 | **every `price_feeds` asset returns a price from the vault's own oracle** | **the vault is broken** (deposits, withdrawals and accounting revert) |
 | **every derived dependency-graph edge present on-chain** | accounting does not cascade to the idle balance |
+| **every `callback_handlers[]` entry registered, read from vault storage** | the first flash loan reverts `HandlerNotFound()` |
 | instant-queue params long enough for each fuse family | instant withdrawals through that entry revert |
 | substrate sets: expected ⊆ on-chain, every word canonical for typed encodings | the fuse ignores the word; the venue is dead |
 | total supply cap in underlying terms | cap off by the decimals offset |
 
-The two bold rows are the **critical hazards**. They are read from the vault's own contracts, never from the shared middleware or the JSON.
+The three bold rows are the **critical hazards**. They are read from the vault's own contracts, never from the shared middleware or the JSON.
 
 ## 7. Recovery and re-runs
 

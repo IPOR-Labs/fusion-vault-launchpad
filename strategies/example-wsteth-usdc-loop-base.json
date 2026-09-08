@@ -1,0 +1,131 @@
+{
+  "$schema": "../schema/strategy.schema.json",
+  "meta": {
+    "name": "example-wsteth-usdc-loop-base",
+    "client": "Example Co",
+    "contact": "ops@example.com",
+    "spec_version": "v2",
+    "spec_source": "strategies/example-wsteth-usdc-loop-base.md",
+    "status": "DRAFT"
+  },
+  "chain": {
+    "id": 8453,
+    "context": "base-fusion"
+  },
+  "vault": {
+    "name": "Example wstETH-USDC Loop",
+    "symbol": "exLOOP",
+    "underlying": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+    "decimals": 6,
+    "total_supply_cap": null,
+    "total_supply_cap_underlying": "250000",
+    "redemption_delay_seconds": 1,
+    "dao_fee_package_index": 1,
+    "initial_owner_override": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+    "deployer_temporary_owner": false
+  },
+  "roles": {
+    "execution_delay_seconds": 0,
+    "grants": [
+      {"role": "OWNER_ROLE",                            "account": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"},
+      {"role": "GUARDIAN_ROLE",                         "account": "0x3C44CdDdB6a900fa2b585dd299e03d18d4beD2e2"},
+      {"role": "ATOMIST_ROLE",                          "account": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"},
+      {"role": "ALPHA_ROLE",                            "account": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8"},
+      {"role": "FUSE_MANAGER_ROLE",                     "account": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"},
+      {"role": "PRE_HOOKS_MANAGER_ROLE",                "account": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"},
+      {"role": "WHITELIST_ROLE",                        "account": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"},
+      {"role": "CONFIG_INSTANT_WITHDRAWAL_FUSES_ROLE",  "account": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"},
+      {"role": "WITHDRAW_MANAGER_REQUEST_FEE_ROLE",     "account": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"},
+      {"role": "WITHDRAW_MANAGER_WITHDRAW_FEE_ROLE",    "account": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"},
+      {"role": "UPDATE_MARKETS_BALANCES_ROLE",          "account": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8"},
+      {"role": "UPDATE_REWARDS_BALANCE_ROLE",           "account": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8"},
+      {"role": "PRICE_ORACLE_MIDDLEWARE_MANAGER_ROLE",  "account": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"}
+    ]
+  },
+  "fuses": [
+    {"name": "MorphoCollateralFuse"},
+    {"name": "MorphoBorrowFuse"},
+    {"name": "MorphoFlashLoanFuse"},
+    {"name": "SwapFuseUniversalTokenSwapper"}
+  ],
+  "balance_fuses": [
+    {"market": "MORPHO",                  "fuse": "MorphoBalanceFuse"},
+    {"market": "MORPHO_FLASH_LOAN",       "fuse": "MorphoFlashLoanBalanceFuse"},
+    {"market": "UNIVERSAL_TOKEN_SWAPPER", "fuse": "UniversalTokenSwapperBalanceFuse"},
+    {"market": "ERC20_VAULT_BALANCE",     "fuse": "ERC20BalanceFuse"}
+  ],
+  "substrates": [
+    {"market": "MORPHO",                  "encoding": "morpho_market_id", "values": ["0x13c42741a359ac4a8aa8287d2be109dcf28344484f91185f9a79bd5a805a55ae"]},
+    {"market": "MORPHO_FLASH_LOAN",       "encoding": "address",          "values": ["0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"]},
+    {"market": "UNIVERSAL_TOKEN_SWAPPER", "encoding": "address",          "values": [
+      "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+      "0x4200000000000000000000000000000000000006",
+      "0xc1CBa3fCea344f92D9239c08C0568f6F2F0ee452",
+      "0x2626664c2603336E57B271c5C0b26F421741e481"
+    ]},
+    {"market": "ERC20_VAULT_BALANCE",     "encoding": "address",          "values": [
+      "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+      "0xc1CBa3fCea344f92D9239c08C0568f6F2F0ee452"
+    ]}
+  ],
+  "callback_handlers": [
+    {"handler": "CallbackHandlerMorpho", "sender": "morpho_blue", "signature": "onMorphoFlashLoan(uint256,bytes)"}
+  ],
+  "dependency_graph": [],
+  "market_limits": [],
+  "price_feeds": [
+    {
+      "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+      "feed_type": "literal",
+      "feed": "0x7e860098F58bBFC8648a4311b374B1D669a2bc6B",
+      "params": {}
+    },
+    {
+      "asset": "0xc1CBa3fCea344f92D9239c08C0568f6F2F0ee452",
+      "feed_type": "DualCrossReferencePriceFeedFactory",
+      "feed": null,
+      "params": {
+        "feed_a": "0x43a5C292A453A3bF3606fa856197f09D7B74251a",
+        "feed_b": "0x71041dddad3595F9CEd3DcCFBe3D1F4b0a16Bb70"
+      }
+    }
+  ],
+  "withdraw_manager": {
+    "window_seconds": 604800,
+    "request_fee_bps": null,
+    "withdraw_fee_bps": null,
+    "fees_managed_by": null
+  },
+  "fees": {
+    "tier": "B",
+    "performance_bps": 200,
+    "management_supplemental_bps": 0,
+    "performance_supplemental_bps": 0,
+    "recipients": [
+      {"address": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266", "split_bps": 10000}
+    ]
+  },
+  "instant_withdrawal": {
+    "order": []
+  },
+  "pre_hooks": [
+    {"name": "ExchangeRateValidatorPreHook", "selector": "0x6e553f65", "params": {"threshold_bps": 200}}
+  ],
+  "rewards": {"enabled": false},
+  "whitelist": {
+    "enabled_at_launch": true,
+    "initial_accounts": ["0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"]
+  },
+  "transferability": {
+    "enabled_at_launch": false,
+    "irreversible_ack": false
+  },
+  "execution": {
+    "broadcast": false,
+    "fork_chain_id_allowlist": [8453, 31337],
+    "gas_multiplier": 1.25,
+    "max_priority_fee_wei": 1000000,
+    "tx_confirmations": 1,
+    "state_file": ".deploy-state/example-wsteth-usdc-loop-base.json"
+  }
+}

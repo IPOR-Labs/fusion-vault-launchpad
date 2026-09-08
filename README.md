@@ -10,7 +10,7 @@ It is written to be driven by an **AI coding agent** working together with a **h
 
 ## What it does
 
-You describe a vault in one file, `strategies/<name>.json`: chain, underlying asset, the protocols it may use (fuses), what it may touch in them (substrates), price feeds, fees, withdrawal mode, roles, whitelist and transferability. The deployer turns that file into a configured vault in 16 idempotent steps and verifies the result by reading the vault's own contracts.
+You describe a vault in one file, `strategies/<name>.json`: chain, underlying asset, the protocols it may use (fuses), what it may touch in them (substrates), price feeds, fees, withdrawal mode, roles, whitelist and transferability. The deployer turns that file into a configured vault in 17 idempotent steps and verifies the result by reading the vault's own contracts.
 
 Three modes, one command:
 
@@ -35,7 +35,7 @@ python -m deploy strategies/example-usdc-aave-base.json   # dry-run of the shipp
 
 `make help` lists the same commands as make targets (`make doctor`, `make test`, `make dry-run`, `make fork`, `make rehearse`, `make diff`, `make verify`).
 
-The example is a single-venue USDC vault on Base supplying to Aave V3. Every address in it is an anvil placeholder; the pipeline will not let it reach a live chain.
+Two examples ship, both on Base and both full of anvil placeholders the pipeline will not let reach a live chain: `example-usdc-aave-base`, a single-venue USDC vault supplying to Aave V3, and `example-wsteth-usdc-loop-base`, a leveraged wstETH/USDC loop on Morpho Blue that exercises a collateralised market, a flash-loan fuse with its callback handler, the legacy universal swapper and scheduled withdrawals.
 
 To deploy your own vault:
 
@@ -66,7 +66,9 @@ To deploy your own vault:
 |---|---|
 | Fresh install from PyPI, unit tests, schema checks | CI on every commit |
 | Dry-run of the example without key or RPC config | run by a fresh agent from the docs alone |
-| Fork rehearsal of the example on a Base fork, all 16 steps, verification 10/10 | run on 2026-09-04 with `ipor-fusion` 3.6.3 |
+| Fork rehearsal of the Aave example on a Base fork, all 16 steps, verification 10/10 | run on 2026-09-04 with `ipor-fusion` 3.6.3 (before `03b_callback_handlers` existed; the step is a no-op for that file) |
+| Dry-run of the loop example, schema, loader rules, spec lint | run on 2026-09-08 with `ipor-fusion` 3.6.3 |
+| The loop example's configuration executing one flash-loan loop | run on 2026-09-08 in a single `eth_simulateV1` batch against a public Base RPC with `ipor-fusion` 3.6.6, **outside this pipeline** (clone, roles, fuses, substrates, callback handler, deposit, loop). Fork rehearsal through the pipeline: pending |
 | Live deployment | by you, with your key, after your own rehearsal |
 
 ## Repository map
@@ -75,7 +77,7 @@ To deploy your own vault:
 deploy/            the pipeline: cli.py (entry), config, context, sdk_session, guards, steps/, encoders/, verification
 schema/            JSON schemas for strategies and chain contexts
 contexts/          per-chain address books (FusionFactory, fuses, feed factories, pre-hooks); a cache of public on-chain data
-strategies/        your strategy specs (.json machine spec + .md human spec); one shipped example
+strategies/        your strategy specs (.json machine spec + .md human spec); two shipped examples
 templates/         the human spec template
 tools/             doctor.py (environment check), spec_lint.py (md ↔ json), plan_diff.py (plan ↔ run)
 Makefile           the same commands as make targets; `make help`

@@ -98,6 +98,7 @@ Each of these produced a check that now exists. Know why.
 - A dry-run once persisted a preview clone address, so a later broadcast **skipped the real clone**. Dry-runs no longer write state; still, clear state before the first live run.
 - A universal swapper fuse was granted substrates in a **layout the fuse ignores**; every config check was green and the venue was dead. The loader enforces fuse family → encoding.
 - A public RPC stalled a live broadcast mid-sequence and hand-sent follow-ups raced nonces. Use a private RPC, run detached, and resume without `--force-restart`.
+- A flash-loan vault passed every configuration check and reverted `HandlerNotFound()` on its first loop: nothing had registered the **callback handler** that routes Morpho's `onMorphoFlashLoan` back into the vault. The loader now refuses a `MorphoFlashLoanFuse` without its `callback_handlers[]` entry, step `03b` writes it, and verification reads it back from vault storage.
 
 ## 9. When you are unsure
 

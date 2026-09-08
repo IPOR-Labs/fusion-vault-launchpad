@@ -66,6 +66,14 @@
         "pattern": "^0x[a-fA-F0-9]{40}$"
       }
     },
+    "callback_handlers": {
+      "description": "Stateless callback-handler contracts by ipor-abi name (CallbackHandlerMorpho, CallbackHandlerEuler). Registered on the vault by 03b_callback_handlers.",
+      "type": "object",
+      "additionalProperties": {
+        "type": "string",
+        "pattern": "^0x[a-fA-F0-9]{40}$"
+      }
+    },
     "markets": {
       "type": "object",
       "additionalProperties": {

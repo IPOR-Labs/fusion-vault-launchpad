@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import json
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
@@ -16,6 +16,7 @@ CONTEXTS_DIR = Path(__file__).resolve().parent.parent / "contexts"
 class DeployContext:
     raw: dict[str, Any]
     name: str
+    _fuse_overrides: dict[str, str] = field(default_factory=dict)
 
     @property
     def chain_id(self) -> int:
@@ -49,10 +50,15 @@ class DeployContext:
         return Web3.to_checksum_address(addr)
 
     def fuse(self, name: str) -> ChecksumAddress:
-        addr = self.raw["fuses"].get(name)
+        """Address for a fuse name: a whitelist-resolved override first (see
+        `deploy/fuse_resolver.py`), then the context's hand-maintained `fuses` map."""
+        addr = self._fuse_overrides.get(name) or self.raw["fuses"].get(name)
         if not addr:
-            raise KeyError(f"fuse '{name}' missing from context '{self.name}'")
+            raise KeyError(f"fuse '{name}' missing from context '{self.name}' and not resolved on the FuseWhitelist")
         return Web3.to_checksum_address(addr)
+
+    def set_fuse_override(self, name: str, address: str) -> None:
+        self._fuse_overrides[name] = Web3.to_checksum_address(address)
 
     def standard_fuses(self) -> list[ChecksumAddress]:
         """Fuses the FusionFactory injects into every vault (e.g. BurnRequestFeeFuse).

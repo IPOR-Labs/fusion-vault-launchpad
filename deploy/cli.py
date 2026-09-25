@@ -22,6 +22,7 @@ if str(ROOT) not in sys.path:
 
 from deploy.config import load_strategy
 from deploy.context import load_context
+from deploy.fuse_resolver import apply_whitelist_resolution
 from deploy.guards import live_broadcast_problems, warn_public_rpc
 from deploy.sdk_session import open_session
 from deploy.state import load_state, save_state
@@ -82,6 +83,9 @@ def main(argv=None):
         problems = live_broadcast_problems(cfg.raw, str(session.signer), session.client_version)
         if problems:
             sys.exit("Refusing to broadcast to a live chain:\n  - " + "\n  - ".join(problems))
+
+    # The FuseWhitelist, not the context file, decides which fuse address is current.
+    apply_whitelist_resolution(cfg.raw, deploy_ctx, session.ctx.web3)
 
     state_path = ROOT / cfg.state_file
     state = load_state(state_path, cfg.raw, force_restart=args.force_restart)

@@ -31,6 +31,8 @@ CI installs only the lightweight test deps and runs `pytest`, then validates eve
 
 ### Adding a fuse to a context
 
+Usually unnecessary: a strategy can name a fuse by its `FuseWhitelist` type name and the address is resolved on-chain (`deploy/fuse_resolver.py`). Add a context entry only to pin one of several active fuses, or for a fuse the whitelist does not carry. When you do:
+
 1. Confirm it is whitelisted: `getFusesByMarketId(marketId)` on the chain's `FuseWhitelist`.
 2. Confirm `MARKET_ID()` on the fuse.
 3. Name it consistently with the `ipor-abi` README.

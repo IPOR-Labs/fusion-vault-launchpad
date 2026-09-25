@@ -19,6 +19,7 @@ Three modes, one command:
 | **Dry-run (simulation)** | `python -m deploy strategies/<name>.json` | Python, internet | No. Prints every intended call with decoded arguments and writes a plan file. |
 | **Fork rehearsal** | same, with `--broadcast --rehearse` and `RPC_URL` pointing at a local [anvil](https://book.getfoundry.sh/anvil/) fork | Foundry, an archive-capable RPC to fork from, anvil's built-in test key | Only to your local fork. Full pipeline, on-chain verification, then the vault is **used**: deposit, every fuse executed, accounting checked, withdrawal paid. |
 | **Live deployment** | same, with `--broadcast --i-understand-this-is-live` | your private RPC, **your funded deployer private key** in `.env`, a human "yes" | Yes. Creates a real vault. |
+| **Live deployment, wallet-signed** | same, plus `--signer browser` | your private RPC, a browser wallet (MetaMask, Rabby) holding the funded deployer account, no key in `.env` | Yes. Each transaction is confirmed by you in the wallet through a local page (http://127.0.0.1:8787). |
 
 Simulation never needs a private key. Creating a vault always does. The pipeline refuses a live broadcast when any role, whitelist entry or fee recipient is a well-known test account.
 

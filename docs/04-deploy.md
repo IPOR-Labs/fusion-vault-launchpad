@@ -150,6 +150,21 @@ Post-broadcast:
 5. Make the first deposit from a whitelisted account and confirm `totalAssets()` moves.
 6. Hand the vault to the Alpha. Operating it (executing fuse actions, simulating a step before sending it) is the SDK's job, not this repository's; the pointers are in `docs/07-resources.md` §"After deployment".
 
+## 5b. Signing with a browser wallet
+
+`--signer browser` replaces the private key with a wallet in your browser:
+
+```bash
+DEPLOYER_ADDRESS=0xYourDeployer python -m deploy strategies/<name>.json --broadcast --i-understand-this-is-live --signer browser
+```
+
+1. The pipeline starts a local page on `http://127.0.0.1:8787` (`--signer-port` changes it) and waits until a wallet connects with the right chain and, when `DEPLOYER_ADDRESS` is set, the right account.
+2. Every step builds its transaction as with a key (gas estimate, revert check), then hands the unsigned transaction to the page. You see the step name, target, calldata and gas limit, and confirm in the wallet. Nonce and fees are set by the wallet.
+3. The page returns the hash; the pipeline waits for the receipt, records state and moves on. Rejecting in the wallet or on the page fails the step like a reverted transaction; `--from-step` resumes.
+4. Verification and the plan/run diff work unchanged.
+
+The page is `tools/browser_signer/index.html`: plain HTML, no build step, wallet discovery through EIP-6963 (falls back to `window.ethereum`), nothing leaves the machine except the transactions you confirm. `DEPLOYER_PRIVATE_KEY` is ignored in this mode.
+
 ## 6. What the verification report checks
 
 `deploy/verification.py`, run at the end of every broadcast and by `--verify-only`:

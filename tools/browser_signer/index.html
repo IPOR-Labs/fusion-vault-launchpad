@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#090E14">
+<title>Fusion vault launchpad · wallet signer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#090E14; --card:#161A20; --popover:#151A20; --hover:#22272C;
+    --border:#45484D; --border-muted:#2E3137; --text:#F8FAFC; --muted:#9BA3AF; --placeholder:#808080;
+    --primary:#8429FF; --primary-2:#6C00FF; --success:#50AF95; --error:#D94343; --warning:#F59E0B; --blue:#3D88FF;
+    --radius-card:18px; --radius-input:10px; --pill:50px; --btn-h:43px;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--bg);color:var(--text);font:15px/22px Poppins,system-ui,sans-serif}
+  a{color:var(--blue);text-decoration:none} a:hover{text-decoration:underline}
+  header{display:flex;align-items:center;gap:14px;padding:18px 28px;border-bottom:1px solid var(--border-muted);background:var(--popover)}
+  header svg{width:34px;height:34px}
+  header .title{font-weight:600;font-size:16px} header .sub{color:var(--muted);font-size:13px;line-height:20px}
+  header .spacer{flex:1}
+  main{max-width:960px;margin:0 auto;padding:28px 24px 60px}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius-card);padding:22px 24px;margin:0 0 18px}
+  .card h2{margin:0 0 12px;font-size:16px;font-weight:600}
+  .row{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+  .kv{display:grid;grid-template-columns:150px 1fr;gap:6px 16px;font-size:14px;line-height:20px}
+  .kv b{color:var(--muted);font-weight:500}
+  code,.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px;word-break:break-all}
+  .pill{display:inline-flex;align-items:center;gap:8px;padding:0 14px;height:28px;border-radius:var(--pill);border:1px solid var(--border);font-size:13px;color:var(--muted)}
+  .pill.ok{border-color:var(--success);color:var(--success)} .pill.bad{border-color:var(--error);color:var(--error)} .pill.warn{border-color:var(--warning);color:var(--warning)}
+  .dot{width:8px;height:8px;border-radius:50%;background:currentColor}
+  button{height:var(--btn-h);padding:0 24px;border-radius:var(--pill);font:inherit;font-weight:600;font-size:15px;cursor:pointer;color:#fff;
+         border:1px solid var(--primary);background:linear-gradient(90deg,var(--primary),var(--primary-2));transition:opacity .15s}
+  button:hover{opacity:.8} button:disabled{opacity:.4;cursor:default}
+  button.sec{font-weight:400;border-color:var(--border);background:transparent} button.sec:hover{background:var(--hover);opacity:1}
+  .tx{border:1px solid rgba(132,41,255,.3);background:linear-gradient(135deg,rgba(132,41,255,.05),transparent 50%);box-shadow:0 0 20px rgba(132,41,255,.3),0 0 40px rgba(132,41,255,.1)}
+  .data{background:#000;border:1px solid var(--border-muted);border-radius:var(--radius-input);padding:10px 12px;max-height:120px;overflow:auto;color:var(--muted)}
+  table{width:100%;border-collapse:collapse;font-size:13px;line-height:20px}
+  th,td{text-align:left;padding:8px 6px;border-bottom:1px solid var(--border-muted);vertical-align:top} th{color:var(--muted);font-weight:500}
+  .muted{color:var(--muted)} .ok{color:var(--success)} .bad{color:var(--error)}
+  .empty{color:var(--placeholder);padding:8px 0}
+  .wallets{display:flex;flex-wrap:wrap;gap:10px}
+  .wallets img{width:20px;height:20px;border-radius:4px;margin-right:8px;vertical-align:middle}
+  footer{color:var(--placeholder);font-size:13px;text-align:center;padding:24px}
+</style>
+</head>
+<body>
+<header>
+  <svg id="Layer_1" data-name="Layer 1" xmlns="http://www.w3.org/2000/svg" width="198.75" height="198.75" viewBox="0 0 198.75 198.75">  <defs>    <style>      .cls-1 {        fill: #fff;      }    </style>  </defs>  <path id="Path_7238" data-name="Path 7238" class="cls-1" d="M198.75,99.37c0-20.6-21.02-38.09-52.5-46.87C137.46,21.02,119.97,0,99.37,0s-38.09,21.02-46.87,52.5C21.02,61.29,0,78.78,0,99.37s21.02,38.09,52.5,46.88c8.79,31.48,26.28,52.5,46.87,52.5s38.09-21.02,46.88-52.5c31.48-8.79,52.5-26.28,52.5-46.88M73.17,37.18c7.32-14.72,16.87-23.16,26.17-23.16s18.88,8.44,26.17,23.16c1.88,3.83,3.52,7.77,4.91,11.81-20.6-3.42-41.63-3.42-62.23,0,1.39-4.04,3.07-7.93,4.95-11.76l.03-.05ZM138.3,99.42c.01,9.02-.73,17.98-2.12,26.89l-63.75-63.79c8.91-1.39,17.92-2.08,26.94-2.06,11.86-.04,23.69,1.17,35.3,3.62,2.45,11.61,3.66,23.34,3.62,35.2M60.45,99.31c-.01-9.02.69-17.96,2.07-26.88l63.79,63.8c-8.91,1.39-17.92,2.08-26.94,2.06-11.86.04-23.69-1.18-35.3-3.62-2.45-11.61-3.66-23.44-3.62-35.3v-.06ZM37.19,125.54c-14.72-7.32-23.16-16.87-23.16-26.17s8.45-18.88,23.16-26.17c3.83-1.88,7.77-3.52,11.81-4.91-3.42,20.6-3.42,41.63,0,62.23-4.04-1.39-7.92-3.06-11.75-4.95l-.06-.03ZM125.6,161.6c-7.32,14.72-16.87,23.16-26.17,23.16s-18.88-8.45-26.17-23.16c-1.88-3.83-3.52-7.77-4.91-11.81,10.28,1.72,20.68,2.58,31.11,2.56,10.42.02,20.83-.84,31.11-2.56-1.39,4.04-3.05,7.93-4.93,11.76l-.03.05ZM161.61,125.58c-3.83,1.88-7.75,3.56-11.79,4.94,1.73-10.28,2.58-20.68,2.56-31.11.02-10.42-.84-20.83-2.56-31.11,4.04,1.38,7.98,3.02,11.81,4.91,14.72,7.32,23.16,16.87,23.16,26.17s-8.44,18.88-23.16,26.17h-.02Z"/></svg>
+  <div><div class="title">Fusion vault launchpad</div><div class="sub">Wallet signer · one transaction at a time, in pipeline order</div></div>
+  <div class="spacer"></div>
+  <span id="chainPill" class="pill"><span class="dot"></span><span id="chainText">chain ?</span></span>
+  <span id="acctPill" class="pill"><span class="dot"></span><span id="acctText">no wallet</span></span>
+</header>
+<main>
+  <section class="card" id="connectCard">
+    <h2>1 · Connect the deployer wallet</h2>
+    <p class="muted" style="margin:0 0 14px">The pipeline expects <code id="expected">any account</code> on chain <code id="expectedChain">?</code>. Select that account in the wallet before connecting.</p>
+    <div class="wallets" id="wallets"></div>
+    <p id="connectMsg" class="muted" style="margin:12px 0 0"></p>
+  </section>
+
+  <section class="card tx" id="txCard" hidden>
+    <h2>2 · Transaction waiting for your signature</h2>
+    <div class="kv">
+      <b>Step</b><span id="txLabel"></span>
+      <b>To</b><span class="mono" id="txTo"></span>
+      <b>Value</b><span id="txValue"></span>
+      <b>Gas limit</b><span id="txGas"></span>
+      <b>Calldata</b><div class="data mono" id="txData"></div>
+    </div>
+    <div class="row" style="margin-top:16px">
+      <button id="signBtn">Sign in wallet</button>
+      <button class="sec" id="rejectBtn">Reject</button>
+      <span id="txMsg" class="muted"></span>
+    </div>
+  </section>
+
+  <section class="card" id="idleCard">
+    <h2>2 · Waiting for the pipeline</h2>
+    <p class="muted" style="margin:0">Nothing to sign right now. Keep this tab open; the next transaction appears here when the pipeline reaches it.</p>
+  </section>
+
+  <section class="card">
+    <h2>3 · Signed so far</h2>
+    <table><thead><tr><th>#</th><th>Step</th><th>Transaction</th><th>Status</th></tr></thead><tbody id="history"></tbody></table>
+    <div class="empty" id="historyEmpty">No transactions yet.</div>
+  </section>
+</main>
+<footer>Local page served by <code>python -m deploy … --signer browser</code>. Nothing leaves this machine except the transactions you confirm in the wallet.</footer>
+<script>
+(() => {
+  const EXPLORERS = {1:"https://etherscan.io",8453:"https://basescan.org",42161:"https://arbiscan.io",999:"https://hyperevmscan.io",43114:"https://snowtrace.io",130:"https://uniscan.xyz",10:"https://optimistic.etherscan.io"};
+  const $ = id => document.getElementById(id);
+  let providers = [], provider = null, account = null, walletChain = null, state = null, busy = false, lastShown = null;
+
+  // EIP-6963 wallet discovery, with window.ethereum as the fallback
+  window.addEventListener("eip6963:announceProvider", e => { providers.push(e.detail); renderWallets(); });
+  window.dispatchEvent(new Event("eip6963:requestProvider"));
+  setTimeout(() => { if (!providers.length && window.ethereum) { providers.push({info:{name:"Injected wallet", icon:""}, provider:window.ethereum}); renderWallets(); } }, 400);
+
+  function renderWallets(){
+    const box = $("wallets"); box.innerHTML = "";
+    if (!providers.length) { box.innerHTML = '<span class="muted">No browser wallet found. Install MetaMask or Rabby and reload.</span>'; return; }
+    providers.forEach((p, i) => { const b = document.createElement("button"); b.className = "sec";
+      b.innerHTML = (p.info.icon ? `<img src="${p.info.icon}" alt="">` : "") + "Connect " + p.info.name; b.onclick = () => connect(i); box.appendChild(b); });
+  }
+
+  async function connect(i){
+    provider = providers[i].provider;
+    try {
+      const accts = await provider.request({method:"eth_requestAccounts"});
+      account = accts[0]; walletChain = parseInt(await provider.request({method:"eth_chainId"}), 16);
+      if (state && walletChain !== state.chainId) {
+        try { await provider.request({method:"wallet_switchEthereumChain", params:[{chainId:"0x"+state.chainId.toString(16)}]}); walletChain = state.chainId; }
+        catch (e) { $("connectMsg").textContent = "Switch the wallet to chain " + state.chainId + " (" + (e.message||e) + ")"; }
+      }
+      provider.on && provider.on("accountsChanged", a => { account = a[0]; report(); });
+      provider.on && provider.on("chainChanged", c => { walletChain = parseInt(c, 16); report(); });
+      await report();
+    } catch (e) { $("connectMsg").textContent = "Connection failed: " + (e.message || e); }
+  }
+
+  async function report(){
+    if (!account) return;
+    const r = await fetch("/api/connect", {method:"POST", headers:{"content-type":"application/json"}, body: JSON.stringify({account, chainId: walletChain})}).then(r => r.json());
+    $("connectMsg").textContent = r.ok ? "Connected. The pipeline is running." : "Not accepted: " + r.problem;
+    $("connectMsg").className = r.ok ? "ok" : "bad";
+    renderHeader();
+  }
+
+  function renderHeader(){
+    $("chainText").textContent = walletChain ? "chain " + walletChain : (state ? "target chain " + state.chainId : "chain ?");
+    $("chainPill").className = "pill " + (walletChain && state ? (walletChain === state.chainId ? "ok" : "bad") : "");
+    $("acctText").textContent = account ? account.slice(0,6) + "…" + account.slice(-4) : "no wallet";
+    const good = account && state && (!state.expectedSigner || state.expectedSigner.toLowerCase() === account.toLowerCase());
+    $("acctPill").className = "pill " + (account ? (good ? "ok" : "bad") : "");
+  }
+
+  async function poll(){
+    try {
+      state = await fetch("/api/state").then(r => r.json());
+      $("expected").textContent = state.expectedSigner || "any account"; $("expectedChain").textContent = state.chainId;
+      renderHeader(); renderPending(); renderHistory();
+    } catch (e) { $("connectMsg").textContent = "Pipeline not reachable (" + (e.message||e) + "). Is it still running?"; $("connectMsg").className = "bad"; }
+    setTimeout(poll, 1000);
+  }
+
+  function renderPending(){
+    const p = state.pending;
+    $("txCard").hidden = !p; $("idleCard").hidden = !!p;
+    if (!p) { lastShown = null; return; }
+    if (lastShown === p.id) return; lastShown = p.id; busy = false;
+    $("txLabel").textContent = p.label; $("txTo").textContent = p.tx.to;
+    $("txValue").textContent = (parseInt(p.tx.value || "0x0", 16) / 1e18) + " native";
+    $("txGas").textContent = parseInt(p.tx.gas, 16).toLocaleString(); $("txData").textContent = p.tx.data;
+    $("txMsg").textContent = ""; $("signBtn").disabled = !account; $("rejectBtn").disabled = false;
+  }
+
+  $("signBtn").onclick = async () => {
+    const p = state && state.pending; if (!p || busy || !provider) return; busy = true;
+    $("signBtn").disabled = true; $("txMsg").textContent = "Confirm in the wallet…";
+    const tx = {from: account, to: p.tx.to, data: p.tx.data, value: p.tx.value, gas: p.tx.gas};
+    try {
+      const hash = await provider.request({method:"eth_sendTransaction", params:[tx]});
+      await fetch("/api/result", {method:"POST", headers:{"content-type":"application/json"}, body: JSON.stringify({id:p.id, hash})});
+      $("txMsg").textContent = "Sent " + hash.slice(0,10) + "… waiting for the receipt."; $("txMsg").className = "ok";
+    } catch (e) {
+      const msg = (e && (e.message || e.toString())) || "rejected";
+      await fetch("/api/result", {method:"POST", headers:{"content-type":"application/json"}, body: JSON.stringify({id:p.id, error: msg})});
+      $("txMsg").textContent = "Not sent: " + msg; $("txMsg").className = "bad";
+    }
+  };
+  $("rejectBtn").onclick = async () => {
+    const p = state && state.pending; if (!p) return; busy = true; $("signBtn").disabled = true; $("rejectBtn").disabled = true;
+    await fetch("/api/result", {method:"POST", headers:{"content-type":"application/json"}, body: JSON.stringify({id:p.id, error:"rejected on the signer page"})});
+  };
+
+  function renderHistory(){
+    const rows = state.history || []; $("historyEmpty").hidden = rows.length > 0;
+    const ex = EXPLORERS[state.chainId];
+    $("history").innerHTML = rows.map(h => `<tr><td>${h.id}</td><td>${h.label}</td><td class="mono">${h.hash ? (ex ? `<a target="_blank" rel="noopener" href="${ex}/tx/${h.hash}">${h.hash.slice(0,18)}…</a>` : h.hash) : ""}</td>
+      <td class="${h.hash ? "ok" : (h.error ? "bad" : "muted")}">${h.hash ? "sent" : (h.error ? "failed: " + h.error : "waiting")}</td></tr>`).join("");
+  }
+  poll();
+})();
+</script>
+</body>
+</html>

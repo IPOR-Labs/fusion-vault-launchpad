@@ -45,6 +45,9 @@ def _parse_args(argv):
     p = argparse.ArgumentParser(prog="python -m deploy", description="IPOR Fusion PlasmaVault deployer")
     p.add_argument("strategy_json", help="path to strategy JSON")
     p.add_argument("--broadcast", action="store_true", help="actually send transactions")
+    p.add_argument("--signer", choices=["key", "browser"], default="key",
+                   help="key: sign with DEPLOYER_PRIVATE_KEY from .env (default); browser: sign each transaction in a wallet through a local page")
+    p.add_argument("--signer-port", type=int, default=8787, help="port of the local signing page (--signer browser)")
     p.add_argument("--from-step", type=int, default=None, help="resume from step N")
     p.add_argument("--only-step", type=int, default=None, help="run only step N")
     p.add_argument("--verify-only", action="store_true", help="run verification against existing state")
@@ -68,7 +71,13 @@ def main(argv=None):
     cfg = load_strategy(args.strategy_json)
     deploy_ctx = load_context(cfg.context_name)
     # The rehearsal signs transactions with the fork key, so it opens a broadcast-capable session.
-    session = open_session(cfg, deploy_ctx, broadcast=args.broadcast or args.rehearse_only)
+    session = open_session(cfg, deploy_ctx, broadcast=args.broadcast or args.rehearse_only,
+                           signer_mode=args.signer, signer_port=args.signer_port)
+    if session.browser_signer:
+        # label every wallet prompt with the step/action the recorder registered just before the send
+        session.browser_signer.install(session.ctx, label_source=lambda: (
+            f"{session.recorder.actions[-1].step} · {session.recorder.actions[-1].function or session.recorder.actions[-1].action}"
+            if session.recorder.actions else "transaction"))
     if (args.rehearse or args.rehearse_only) and not session.is_local_node:
         sys.exit("--rehearse / --rehearse-only impersonate accounts and move time: they run only against a local fork "
                  f"(anvil/hardhat); this node reports {session.client_version or 'unknown client'}.")

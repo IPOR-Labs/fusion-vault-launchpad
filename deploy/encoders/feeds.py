@@ -49,9 +49,14 @@ def decode_collateral_create_result(data: bytes) -> ChecksumAddress:
 
 
 def build_erc4626_create(params: dict) -> bytes:
-    """ERC4626PriceFeedFactory.create(asset) -> address."""
-    sig = "create(address)"
-    return _selector(sig) + abi_encode(["address"], [Web3.to_checksum_address(params["asset"])])
+    """ERC4626PriceFeedFactory.create(vault, priceOracleMiddleware) -> address.
+
+    The factory reads the vault's `asset()` and requires `priceOracleMiddleware` to
+    price it (AssetOfVaultNotValid otherwise), so pass the vault's own price manager
+    after its underlying feeds are registered, not the shared chain middleware."""
+    sig = "create(address,address)"
+    return _selector(sig) + abi_encode(["address", "address"], [Web3.to_checksum_address(params["asset"]),
+                                                               Web3.to_checksum_address(params["price_oracle_middleware"])])
 
 
 def build_middleware_set_asset_prices_sources(

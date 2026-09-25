@@ -55,7 +55,7 @@ def _impersonate_and_call(session, deploy_ctx, calldata, original_err):
     return tx_hash.hex()
 
 
-def _deploy_one(cfg, deploy_ctx, session, broadcast, pf):
+def _deploy_one(cfg, deploy_ctx, session, broadcast, pf, vault_oracle=None):
     asset = Web3.to_checksum_address(pf["asset"])
     feed_type = pf["feed_type"]
     if feed_type == "prebuilt":
@@ -99,6 +99,7 @@ def _deploy_one(cfg, deploy_ctx, session, broadcast, pf):
         factory = deploy_ctx.price_feed_factory(feed_type)
         params = dict(pf.get("params") or {})
         params.setdefault("asset", asset)
+        params["price_oracle_middleware"] = vault_oracle   # the factory checks the vault's asset prices here
         calldata = build_erc4626_create(params)
         if not broadcast:
             print(f"[{NAME}] asset={asset} ERC4626 -> would call factory {factory}")
@@ -141,7 +142,32 @@ def run(cfg, deploy_ctx, session, instance, state, broadcast):
     assets = []
     sources = []
     recs = []
-    for pf in cfg.raw["price_feeds"]:
+    # Feeds that only need the chain (literal, prebuilt, cross-reference factories) go first and are
+    # registered; factory feeds that value another vault's shares (ERC4626PriceFeedFactory) come after,
+    # because their factory asks the vault oracle to price the child's underlying at creation time.
+    ordered = [pf for pf in cfg.raw["price_feeds"] if pf["feed_type"] != "ERC4626PriceFeedFactory"]
+    dependent = [pf for pf in cfg.raw["price_feeds"] if pf["feed_type"] == "ERC4626PriceFeedFactory"]
+    tx_hashes: list[str] = []
+
+    def _register(assets, sources, recs):
+        calldata = build_middleware_set_asset_prices_sources(assets, sources)
+        try:
+            receipt = session.ctx.send(vault_oracle, calldata)
+            tx_hash = receipt["transactionHash"].hex()
+        except Exception as e:
+            tx_hash = _impersonate_and_call(session, deploy_ctx, calldata, e)
+        print(f"[{NAME}] vault_oracle.setAssetsPriceSources tx={tx_hash}")
+        for rec in recs:
+            rec.executed = True
+            rec.tx_hash = tx_hash
+        tx_hashes.append(tx_hash)
+
+    if ordered and dependent and broadcast:
+        pass  # the first group is registered before the second is created (below)
+    for pf in ordered + dependent:
+        if broadcast and dependent and pf is dependent[0] and assets:
+            _register(assets, sources, recs)
+            assets, sources, recs = [], [], []
         asset = Web3.to_checksum_address(pf["asset"])
         rec = session.recorder.add(
             NAME, action="registerPriceFeed", key=asset,
@@ -153,7 +179,7 @@ def run(cfg, deploy_ctx, session, instance, state, broadcast):
             rec.skipped = True
             rec.note = "already priceable via vault oracle"
             continue
-        feed_addr = _deploy_one(cfg, deploy_ctx, session, broadcast, pf)
+        feed_addr = _deploy_one(cfg, deploy_ctx, session, broadcast, pf, vault_oracle)
         if feed_addr is None:
             # Dry-run: a factory-minted feed address is only known at broadcast.
             rec.note = "feed address resolved at broadcast (factory create)"
@@ -169,18 +195,10 @@ def run(cfg, deploy_ctx, session, instance, state, broadcast):
     if assets and broadcast:
         # Register on the VAULT'S oracle — the deployer holds role 1200 there
         # (granted in 01b_bootstrap_roles), so no impersonation is needed.
-        calldata = build_middleware_set_asset_prices_sources(assets, sources)
-        try:
-            receipt = session.ctx.send(vault_oracle, calldata)
-            tx_hash = receipt["transactionHash"].hex()
-        except Exception as e:
-            tx_hash = _impersonate_and_call(session, deploy_ctx, calldata, e)
-        print(f"[{NAME}] vault_oracle.setAssetsPricesSources tx={tx_hash}")
-        for rec in recs:
-            rec.executed = True
-            rec.tx_hash = tx_hash
-        state.record(NAME, tx_hashes=[tx_hash],
-                     notes={"oracle": vault_oracle, "feeds": {a: s for a, s in zip(assets, sources)}})
+        _register(assets, sources, recs)
+    if tx_hashes:
+        state.record(NAME, tx_hashes=tx_hashes,
+                     notes={"oracle": vault_oracle, "feeds": {a.lower(): f for a, f in state.feeds.items()}})
     elif not assets:
         print(f"[{NAME}] no new feeds to register (all priceable via vault oracle)")
         state.record(NAME)

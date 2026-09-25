@@ -45,8 +45,9 @@ def _parse_args(argv):
     p = argparse.ArgumentParser(prog="python -m deploy", description="IPOR Fusion PlasmaVault deployer")
     p.add_argument("strategy_json", help="path to strategy JSON")
     p.add_argument("--broadcast", action="store_true", help="actually send transactions")
-    p.add_argument("--signer", choices=["key", "browser"], default="key",
-                   help="key: sign with DEPLOYER_PRIVATE_KEY from .env (default); browser: sign each transaction in a wallet through a local page")
+    p.add_argument("--signer", choices=["key", "browser", "impersonate"], default="key",
+                   help="key: sign with DEPLOYER_PRIVATE_KEY from .env (default); browser: sign each transaction in a wallet through a local page; "
+                        "impersonate: fork only, the node signs for DEPLOYER_ADDRESS so the rehearsal runs as the production deployer")
     p.add_argument("--signer-port", type=int, default=8787, help="port of the local signing page (--signer browser)")
     p.add_argument("--from-step", type=int, default=None, help="resume from step N")
     p.add_argument("--only-step", type=int, default=None, help="run only step N")

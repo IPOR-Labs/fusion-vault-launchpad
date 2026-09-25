@@ -70,6 +70,22 @@ def _install_monotonic_nonce(ctx) -> None:
     setattr(ctx, attr, patched_build)
 
 
+def _install_impersonated_send(ctx) -> None:
+    """Route `send` through the fork's unlocked account (anvil_impersonateAccount)."""
+    w3 = ctx.web3
+    sender = ctx.signer
+    w3.provider.make_request("anvil_impersonateAccount", [sender])
+    w3.provider.make_request("anvil_setBalance", [sender, hex(10**20)])
+
+    def impersonated_send(to, data):
+        built = ctx.build_transaction(to, data)
+        tx_hash = w3.eth.send_transaction({"from": sender, "to": to, "data": built["data"], "gas": built["gas"]})
+        receipt = w3.eth.wait_for_transaction_receipt(tx_hash)
+        return ctx._handle_receipt(tx_hash, receipt)
+
+    ctx.send = impersonated_send
+
+
 @dataclass(slots=True)
 class Session:
     ctx: Web3Context
@@ -105,16 +121,17 @@ def open_session(cfg: StrategyConfig, context: DeployContext, broadcast: bool,
     rpc, rpc_source = resolve_rpc_url(context, broadcast)
     pk = os.environ.get("DEPLOYER_PRIVATE_KEY") or None
     browser = signer_mode == "browser"
-    if browser:
-        pk = None   # a wallet signs; a key in .env is ignored on purpose
-    if broadcast and not pk and not browser:
+    impersonate = signer_mode == "impersonate"
+    if browser or impersonate:
+        pk = None   # a wallet (or the fork) signs; a key in .env is ignored on purpose
+    if broadcast and not pk and not (browser or impersonate):
         raise RuntimeError(
             "DEPLOYER_PRIVATE_KEY not set — required for --broadcast. Simulation (dry-run) works "
             "without it; creating a vault does not. Ask the human operator to add the key to .env "
             "(see .env.example). Never ask them to paste it into the chat."
         )
     simulated_signer = None
-    if not broadcast and not pk and not browser:
+    if not broadcast and not pk and not (browser or impersonate):
         # A key-less dry-run still needs a plausible sender: the factory refuses a zero
         # owner (Mode A passes the deployer as the clone owner) and previews depend on
         # `from`. DEPLOYER_ADDRESS wins, then the strategy's initial_owner_override.
@@ -131,6 +148,23 @@ def open_session(cfg: StrategyConfig, context: DeployContext, broadcast: bool,
     if broadcast and pk:
         _install_monotonic_nonce(ctx)
 
+    try:
+        client_version = str(ctx.web3.client_version)
+    except Exception:
+        client_version = ""
+    local = is_local_node(client_version)
+
+    if impersonate:
+        # Rehearse as the production deployer: the fork signs for DEPLOYER_ADDRESS, so roles,
+        # whitelist entries and the factory's per-client fee package match the live run.
+        if not local:
+            raise RuntimeError("--signer impersonate works only against a local fork (anvil/hardhat)")
+        addr = os.environ.get("DEPLOYER_ADDRESS")
+        if not addr:
+            raise RuntimeError("--signer impersonate needs DEPLOYER_ADDRESS (the account the fork will impersonate)")
+        ctx._signer = Web3.to_checksum_address(addr)
+        _install_impersonated_send(ctx)
+
     browser_signer = None
     if browser:
         from deploy.browser_signer import BrowserSigner, SigningQueue
@@ -139,11 +173,6 @@ def open_session(cfg: StrategyConfig, context: DeployContext, broadcast: bool,
         browser_signer.start()
         browser_signer.wait_for_wallet()
 
-    try:
-        client_version = str(ctx.web3.client_version)
-    except Exception:
-        client_version = ""
-    local = is_local_node(client_version)
 
     actual_chain = int(ctx.web3.eth.chain_id)
     allowlist = cfg.raw["execution"].get("fork_chain_id_allowlist", [])

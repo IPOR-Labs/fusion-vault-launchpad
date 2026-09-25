@@ -145,7 +145,7 @@ def run(cfg, deploy_ctx, session, instance, state, broadcast):
         asset = Web3.to_checksum_address(pf["asset"])
         rec = session.recorder.add(
             NAME, action="registerPriceFeed", key=asset,
-            target=vault_oracle, function="setAssetsPricesSources(address[],address[])",
+            target=vault_oracle, function="setAssetsPriceSources(address[],address[])",
             args={"asset": asset, "feed_type": pf["feed_type"]},
         )
         if _prices_ok(session, vault_oracle, asset):

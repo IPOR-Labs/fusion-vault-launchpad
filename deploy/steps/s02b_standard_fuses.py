@@ -41,10 +41,10 @@ def run(cfg, deploy_ctx, session, instance, state, broadcast):
         return
     txs = []
     if to_add:
-        r = vault.add_fuses([session.ctx.w3.to_checksum_address(a) for a in to_add]).send()
+        r = vault.add_fuses([session.ctx.web3.to_checksum_address(a) for a in to_add]).send()
         txs.append(r["transactionHash"].hex()); print(f"[{NAME}] addFuses tx {txs[-1]}")
     if to_remove:
-        r = vault.remove_fuses([session.ctx.w3.to_checksum_address(a) for a in to_remove]).send()
+        r = vault.remove_fuses([session.ctx.web3.to_checksum_address(a) for a in to_remove]).send()
         txs.append(r["transactionHash"].hex()); print(f"[{NAME}] removeFuses tx {txs[-1]}")
     rec.executed = True
     rec.tx_hash = txs[-1] if txs else None

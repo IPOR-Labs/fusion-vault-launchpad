@@ -57,10 +57,10 @@ def build_erc4626_create(params: dict) -> bytes:
 def build_middleware_set_asset_prices_sources(
     assets: list[ChecksumAddress], sources: list[ChecksumAddress]
 ) -> bytes:
-    """PriceOracleMiddlewareUsdWithRoles.setAssetsPricesSources(address[],address[])."""
+    """PriceOracleMiddlewareUsdWithRoles.setAssetsPriceSources(address[],address[])."""
     if len(assets) != len(sources):
         raise ValueError("assets and sources must match length")
-    sig = "setAssetsPricesSources(address[],address[])"
+    sig = "setAssetsPriceSources(address[],address[])"
     return _selector(sig) + abi_encode(["address[]", "address[]"], [assets, sources])
 
 

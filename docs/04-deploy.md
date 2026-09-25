@@ -100,6 +100,20 @@ Notes:
 - When the rehearsal is clean, **delete `.deploy-state/<name>.json`** (it holds fork addresses) or pass `--force-restart` on the live run.
 - Sum `gas_used` in `.run.json` to estimate what to fund the live deployer with. The shipped example used about 10.4M gas on a Base fork (the clone alone is about 8.9M); Ethereum gas prices make the same deployment far more expensive.
 
+## 4a. Rehearsing as the production deployer, and preparing the fork
+
+Two options make a fork rehearsal reproduce the live run instead of a stand-in:
+
+- `--signer impersonate` (fork only) makes anvil sign for `DEPLOYER_ADDRESS`, so the clone owner, every role grant, the whitelist entries and the factory's per-client fee package are exactly the ones the live run will use. No key is needed. The pipeline refuses this mode against a live node.
+- A rehearsal script may define `prepare(env) -> list[str]`. It runs once, before the deposit, only on the fork, for third-party state the strategy depends on but does not own: a market parameter the venue's governor has not set yet, a pool that does not exist, liquidity to borrow, a fee package the DAO still has to approve. Every returned line is printed as a warning and stored under `observations.prepare`, so nobody mistakes it for chain state. The env offers `impersonated_call(sender, to, signature, arg_types, args)`, `impersonated_send(sender, to, data)`, `deploy_contract(sender, bytecode, constructor_args)` and `advance_time(seconds)`; impersonated calls estimate gas first.
+
+```bash
+RPC_URL=http://127.0.0.1:8546 DEPLOYER_ADDRESS=0xYourDeployer \
+python -m deploy strategies/<name>.json --broadcast --rehearse --signer impersonate
+```
+
+A rehearsal that needed `prepare` is only as good as the prepared assumptions; list them in the strategy's `.md` (§13) next to what still has to happen on the live chain.
+
 ## 4b. The rehearsal stage — what "verified" means
 
 Reading configuration back proves the vault is configured. It does not prove the vault works: a granted substrate the fuse cannot act on, a market counted twice, or a withdrawal path that cannot pay all pass every read-back check. The rehearsal stage (`deploy/rehearsal.py`, rules in `deploy/rehearsal_rules.py`) uses the vault on the fork:

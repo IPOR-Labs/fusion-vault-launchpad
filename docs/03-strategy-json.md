@@ -81,9 +81,12 @@ How grants are used: `01b_bootstrap_roles` grants **the deployer** every role li
 
 | Key | Notes |
 |---|---|
-| `fuses[].name` | resolved through the context's `fuses` map, and checked against the on-chain `FuseWhitelist` |
+| `fuses[].name` | a `FuseWhitelist` fuse-type name (`EulerV2SupplyFuse`, `ERC20BalanceFuse`, `Erc4626SupplyFuse`, …) or a key of the context's `fuses` map; the address is **resolved on the whitelist** before any step runs (see below) and then gated |
+| `fuses[].market` | optional; the market to resolve the fuse on. Needed only when the same fuse type is active on more than one of the strategy's balance-fuse markets (e.g. `Erc4626SupplyFuse` on `ERC4626_0001` and `ERC4626_0002`) |
 | `balance_fuses[].market` | market name (`AAVE_V3`, `MORPHO`, `ERC20_VAULT_BALANCE`, …) resolved via the context `markets` map or the SDK's `IporFusionMarkets` |
 | `balance_fuses[].fuse` | balance fuse name from the context |
+
+**Resolution order** (`deploy/fuse_resolver.py`, run once per pipeline start): the name is mapped to a whitelist fuse type (by type name, or by the type of the context address for that key), then `getFusesByTypeAndMarketIdAndStatus(type, market, active)` is read on the chain's `FuseWhitelist`. Exactly one active address wins, even when the context lists another one (the context is a cache and goes stale when IPOR ships a new fuse version; the run prints `update the context`). Several active addresses: the context's pin is used if it is one of them, otherwise the run stops and names them. No active address: the context address is used with a warning, and the whitelist gate in `02_add_fuses` decides. Names that are neither a type name nor a context key stop the run.
 
 Every market you act on needs a balance fuse. Include `ERC20_VAULT_BALANCE` with `ERC20BalanceFuse` in virtually every vault. The factory injects standard fuses (`BurnRequestFeeFuse`) on its own; do not list them; `02b_standard_fuses` upgrades them to the latest version from the context's `standard_fuses`.
 

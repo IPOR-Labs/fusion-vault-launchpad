@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import os
 import sys
+from typing import Any
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -80,6 +81,7 @@ class Session:
     recorder: RunRecorder
     client_version: str
     is_local_node: bool
+    browser_signer: Any | None = None
 
 
 def resolve_rpc_url(context: DeployContext, broadcast: bool) -> tuple[str, str]:
@@ -98,17 +100,27 @@ def resolve_rpc_url(context: DeployContext, broadcast: bool) -> tuple[str, str]:
     raise RuntimeError(f"RPC_URL not set and context '{context.name}' has no public_rpc.")
 
 
-def open_session(cfg: StrategyConfig, context: DeployContext, broadcast: bool) -> Session:
+def open_session(cfg: StrategyConfig, context: DeployContext, broadcast: bool,
+                 signer_mode: str = "key", signer_port: int = 8787) -> Session:
     rpc, rpc_source = resolve_rpc_url(context, broadcast)
     pk = os.environ.get("DEPLOYER_PRIVATE_KEY") or None
-    if broadcast and not pk:
+    browser = signer_mode == "browser"
+    if browser:
+        pk = None   # a wallet signs; a key in .env is ignored on purpose
+    if broadcast and not pk and not browser:
         raise RuntimeError(
             "DEPLOYER_PRIVATE_KEY not set — required for --broadcast. Simulation (dry-run) works "
             "without it; creating a vault does not. Ask the human operator to add the key to .env "
             "(see .env.example). Never ask them to paste it into the chat."
         )
-    if not broadcast and not pk:
-        print("INFO: DEPLOYER_PRIVATE_KEY not set — dry-run only (no signer).", file=sys.stderr)
+    simulated_signer = None
+    if not broadcast and not pk and not browser:
+        # A key-less dry-run still needs a plausible sender: the factory refuses a zero
+        # owner (Mode A passes the deployer as the clone owner) and previews depend on
+        # `from`. DEPLOYER_ADDRESS wins, then the strategy's initial_owner_override.
+        simulated_signer = os.environ.get("DEPLOYER_ADDRESS") or cfg.raw["vault"].get("initial_owner_override")
+        print("INFO: DEPLOYER_PRIVATE_KEY not set — dry-run only (no signer)"
+              + (f"; simulating sender {simulated_signer}" if simulated_signer else "") + ".", file=sys.stderr)
 
     gas_mult = float(cfg.raw["execution"].get("gas_multiplier", 1.25))
     ctx = Web3Context.from_url(rpc, private_key=pk, gas_multiplier=gas_mult)
@@ -118,6 +130,14 @@ def open_session(cfg: StrategyConfig, context: DeployContext, broadcast: bool) -
 
     if broadcast and pk:
         _install_monotonic_nonce(ctx)
+
+    browser_signer = None
+    if browser:
+        from deploy.browser_signer import BrowserSigner, SigningQueue
+        expected = os.environ.get("DEPLOYER_ADDRESS") or None
+        browser_signer = BrowserSigner(SigningQueue(int(ctx.web3.eth.chain_id), expected), port=signer_port)
+        browser_signer.start()
+        browser_signer.wait_for_wallet()
 
     try:
         client_version = str(ctx.web3.client_version)
@@ -141,7 +161,9 @@ def open_session(cfg: StrategyConfig, context: DeployContext, broadcast: bool) -
         print(f"WARNING: chain_id mismatch (RPC={actual_chain}, cfg={cfg.chain_id})")
 
     factory = FusionFactory(ctx, context.fusion_factory)
-    signer = ctx.signer or Web3.to_checksum_address("0x" + "00" * 20)
+    if browser_signer:
+        ctx._signer = Web3.to_checksum_address(browser_signer.queue.account)
+    signer = ctx.signer or Web3.to_checksum_address(simulated_signer or "0x" + "00" * 20)
     print(f"INFO: RPC source={rpc_source} chain_id={actual_chain} node={'local fork' if local else 'live'} "
           f"signer={signer}", file=sys.stderr)
     recorder = RunRecorder(
@@ -163,5 +185,6 @@ def open_session(cfg: StrategyConfig, context: DeployContext, broadcast: bool) -
         broadcast=broadcast,
         recorder=recorder,
         client_version=client_version,
+        browser_signer=browser_signer,
         is_local_node=local,
     )

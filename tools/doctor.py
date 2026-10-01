@@ -58,13 +58,14 @@ def main(argv: list[str]) -> int:
 
     rpc = os.environ.get("RPC_URL")
     key = os.environ.get("DEPLOYER_PRIVATE_KEY")
+    key_missing = False
     if key:
         shape_ok = key.startswith("0x") and len(key) == 66
         rows.append((OK if shape_ok else FAIL, "DEPLOYER_PRIVATE_KEY is set" + ("" if shape_ok else " but is not 0x + 64 hex chars")))
         live_ok &= shape_ok
     else:
-        rows.append((WARN, "DEPLOYER_PRIVATE_KEY not set: simulation works, creating a vault does not"))
-        live_ok = False
+        rows.append((WARN, "DEPLOYER_PRIVATE_KEY not set: simulation works; to create a vault, sign in a browser wallet on the local page (--signer browser / make sign) or add a key"))
+        key_missing = True
 
     # Strategy + context
     ctx_public_rpc = None
@@ -131,7 +132,8 @@ def main(argv: list[str]) -> int:
     print("\nAvailable now:")
     print(f"  dry-run (simulation)   {'yes' if dry_run_ok else 'NO'}   python -m deploy {strategy}")
     print(f"  fork rehearsal         {'yes' if rehearsal_ok else 'no '}   needs anvil running and RPC_URL=http://127.0.0.1:<port>")
-    print(f"  live deployment        {'yes' if live_ok else 'no '}   needs RPC_URL (private), DEPLOYER_PRIVATE_KEY, real addresses, and a human 'yes'")
+    print(f"  live deployment        {'yes' if live_ok and not key_missing else 'no '}   needs RPC_URL (private), DEPLOYER_PRIVATE_KEY, real addresses, and a human 'yes'")
+    print(f"  live, wallet-signed    {'yes' if live_ok else 'no '}   needs RPC_URL (private), real addresses, the human's browser wallet and a human 'yes': make sign (page on http://127.0.0.1:8789)")
     return 0 if dry_run_ok else 1
 
 

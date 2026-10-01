@@ -14,7 +14,7 @@ NAME       = $(basename $(notdir $(STRATEGY)))
 ANVIL_KEY  = 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
 ANVIL     ?= anvil
 
-.PHONY: help install doctor test lint dry-run fork rehearse exercise diff verify clean-state
+.PHONY: help install doctor test lint dry-run fork rehearse exercise sign assign-alpha sign-set diff verify clean-state
 
 help: ## list targets
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  %-14s %s\n", $$1, $$2}'
@@ -43,6 +43,15 @@ rehearse: ## broadcast the pipeline against the local anvil fork with anvil's te
 
 exercise: ## re-run only the rehearsal stage against the vault deployed on the fork
 	RPC_URL=http://127.0.0.1:$(PORT) DEPLOYER_PRIVATE_KEY=$(ANVIL_KEY) $(PY) -m deploy $(STRATEGY) --rehearse-only
+
+sign: ## broadcast signing every transaction in a browser wallet on the local page (http://127.0.0.1:8789); RPC_URL + DEPLOYER_ADDRESS from .env or the command line. Add LIVE=1 for a live chain
+	$(PY) -m deploy $(STRATEGY) --broadcast --signer browser $(if $(LIVE),--i-understand-this-is-live,)
+
+assign-alpha: ## once the alpha exists: grant the alpha roles from roles.grants on the deployed vault, signing on the local page
+	$(PY) -m deploy $(STRATEGY) --broadcast --signer browser --assign-alpha $(if $(LIVE),--i-understand-this-is-live,)
+
+sign-set: ## deploy a set of connected vaults from CAMPAIGN (a campaign file, docs/04-deploy.md §5c), signing on the local page; LIVE=1 for a live chain
+	$(PY) -m deploy.campaign $(CAMPAIGN) --broadcast --signer browser $(if $(LIVE),--i-understand-this-is-live,)
 
 diff: ## compare the dry-run plan with the last broadcast run
 	$(PY) tools/plan_diff.py .deploy-state/$(NAME).plan.json .deploy-state/$(NAME).run.json

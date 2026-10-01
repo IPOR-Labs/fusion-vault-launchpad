@@ -18,10 +18,11 @@ from deploy.fuses import queue_param_problems
 from deploy.fuses import classify_fuses
 from deploy.whitelist import read_fuse_statuses, whitelist_problems
 from deploy.graph import derive_dependency_graph
+from deploy.role_plan import grant_is_deferred
 from deploy.roles import resolve_role_id
 
 
-def verify(cfg, deploy_ctx, session, instance) -> dict:
+def verify(cfg, deploy_ctx, session, instance, since_block: int | None = None) -> dict:
     """Returns a dict report. Prints findings. Doesn't raise — caller decides."""
     report: dict = {"ok": [], "warn": [], "fail": []}
 
@@ -103,7 +104,8 @@ def verify(cfg, deploy_ctx, session, instance) -> dict:
 
     # 4. roles
     granted = 0
-    missing = 0
+    missing = []
+    deferred = []
     for grant in cfg.raw["roles"]["grants"]:
         try:
             role_id = resolve_role_id(grant["role"])
@@ -111,16 +113,19 @@ def verify(cfg, deploy_ctx, session, instance) -> dict:
             status = access.has_role(role_id, addr).call()
             if status.is_member:
                 granted += 1
+            elif grant_is_deferred(grant):
+                deferred.append(grant["role"])
             else:
-                missing += 1
+                missing.append(grant["role"])
         except Exception:
             # Unknown role name or RPC backend lag — count as not-yet-present;
             # verify() never raises, the caller decides on the report.
-            missing += 1
-    if missing == 0:
-        _ok(f"all {granted} role grants present")
+            missing.append(grant["role"])
+    if not missing:
+        _ok(f"all {granted} role grants present" + (f"; {len(deferred)} alpha role(s) deferred until --assign-alpha" if deferred else ""))
     else:
-        _warn(f"role grants present={granted}, missing={missing}")
+        _warn(f"role grants present={granted}, missing={len(missing)} ({', '.join(missing)}: skipped on the signing page or not yet granted)"
+              + (f"; {len(deferred)} alpha role(s) deferred until --assign-alpha" if deferred else ""))
 
     # 5. price feeds — CRITICAL HAZARD POINT.
     # Check the VAULT'S OWN oracle (the cloned price_manager that the vault prices
@@ -252,5 +257,56 @@ def verify(cfg, deploy_ctx, session, instance) -> dict:
     except Exception as e:
         _warn(f"total supply cap read failed: {e}")
 
+    # 8. permission audit — nobody holds a role the spec does not grant (no leftover executor,
+    # Safe, factory or stray address). Rebuilt from the AccessManager's RoleGranted/RoleRevoked events.
+    try:
+        from deploy.chain_guards import permission_problems, role_holders
+        events = _role_events(session.ctx.web3, instance["access_manager"], vault_addr, since_block)
+        held = role_holders(events)
+        spec_accounts = {g.get("account") or g.get("address") for g in cfg.raw.get("roles", {}).get("grants", [])} | {str(session.signer)}
+        system = {v for k, v in instance.items() if k != "initial_owner" and v}
+        fails, notes = permission_problems(held, {a for a in spec_accounts if a}, system)
+        for f in fails:
+            _fail(f"leftover permission: {f}")
+        if not fails:
+            _ok(f"permission audit: {len(held)} role grants, every holder is in the spec or a vault contract"
+                + (f"; depositors: {', '.join(notes)}" if notes else ""))
+    except Exception as e:
+        _warn(f"permission audit could not read the role events: {e}")
+
     print(f"\nverification: {len(report['ok'])} ok, {len(report['warn'])} warn, {len(report['fail'])} fail")
     return report
+
+
+def _role_events(w3, access_manager: str, vault: str, since_block: int | None = None) -> list[tuple[str, int, str]]:
+    """RoleGranted / RoleRevoked on the vault's AccessManager since the vault was created, in order."""
+    am = Web3.to_checksum_address(access_manager)
+    granted = Web3.keccak(text="RoleGranted(uint64,address,uint32,uint48,bool)").hex()
+    revoked = Web3.keccak(text="RoleRevoked(uint64,address)").hex()
+    granted, revoked = ("0x" + granted.removeprefix("0x"), "0x" + revoked.removeprefix("0x"))
+    latest = int(w3.eth.block_number)
+    lo, hi = (since_block, since_block) if since_block is not None else (0, latest)   # clone block, or search for it
+    while lo < hi:
+        mid = (lo + hi) // 2
+        if w3.eth.get_code(am, block_identifier=mid):
+            hi = mid
+        else:
+            lo = mid + 1
+    logs, start, step = [], lo, 100_000
+    while start <= latest:
+        end = min(start + step - 1, latest)
+        try:
+            logs += w3.eth.get_logs({"address": am, "fromBlock": start, "toBlock": end, "topics": [[granted, revoked]]})
+            start = end + 1
+        except Exception:
+            if step <= 1_000:
+                raise
+            step //= 4
+    logs.sort(key=lambda l: (l["blockNumber"], l["logIndex"]))
+    out = []
+    for l in logs:
+        t0 = "0x" + bytes(l["topics"][0]).hex().removeprefix("0x")
+        role = int.from_bytes(bytes(l["topics"][1]), "big")
+        account = "0x" + bytes(l["topics"][2])[-20:].hex()
+        out.append(("granted" if t0 == granted else "revoked", role, account))
+    return out

@@ -52,6 +52,8 @@ Safety checks at session open:
 - The RPC's chain id must equal `chain.id` or be listed in `execution.fork_chain_id_allowlist`; on `--broadcast` a mismatch is a **hard fail**, on a dry-run a warning.
 - On a live node, any anvil default account among the signer, role holders, whitelist or fee recipients is a **hard fail**.
 - A public RPC host with `--broadcast` prints a warning: use a private endpoint and run detached.
+- Resume check: before a run resumes from a state file, the recorded clone transaction must be mined with success on the connected chain and the vault and its access manager must have code. Otherwise the run stops before sending anything; `--force-restart` if the state belongs to an old fork or a failed attempt, or fix `RPC_URL` if the vault should exist. A clone that was never mined (a wallet cancel, a failed send) leaves no addresses behind.
+- No send without a contract: every transaction the pipeline sends, with any signer, is refused when its target has no code on the connected chain.
 - Config drift: if the state file's `config_hash` differs from the current JSON, the run aborts. Reconcile the JSON with what was deployed, or `--force-restart` if nothing real was broadcast.
 
 ## 3. Dry-run (simulation)
@@ -166,18 +168,61 @@ Post-broadcast:
 
 ## 5b. Signing with a browser wallet
 
-`--signer browser` replaces the private key with a wallet in your browser:
+`--signer browser` replaces the private key with a wallet in your browser (Rabby, MetaMask, any EIP-6963 wallet):
 
 ```bash
 DEPLOYER_ADDRESS=0xYourDeployer python -m deploy strategies/<name>.json --broadcast --i-understand-this-is-live --signer browser
+# or: make sign STRATEGY=strategies/<name>.json RPC_URL=<your private RPC> DEPLOYER_ADDRESS=0xYourDeployer
 ```
 
-1. The pipeline starts a local page on `http://127.0.0.1:8787` (`--signer-port` changes it) and waits until a wallet connects with the right chain and, when `DEPLOYER_ADDRESS` is set, the right account.
-2. Every step builds its transaction as with a key (gas estimate, revert check), then hands the unsigned transaction to the page. You see the step name, target, calldata and gas limit, and confirm in the wallet. Nonce and fees are set by the wallet.
-3. The page returns the hash; the pipeline waits for the receipt, records state and moves on. Rejecting in the wallet or on the page fails the step like a reverted transaction; `--from-step` resumes.
-4. Verification and the plan/run diff work unchanged.
+1. Before the first transaction the pipeline loads the dry-run plan for this exact strategy file (`.deploy-state/<name>.plan.json`); when it is missing or stale it runs the dry-run first. The page therefore lists **every signature of the run, per step**, before you sign anything.
+2. It starts a local page on `http://127.0.0.1:8789` (`--signer-port` changes it) and waits until a wallet connects with the right chain and, when `DEPLOYER_ADDRESS` is set, the right account. After connecting, the page shows a pre-flight: the deployer's gas balance and whether the factory holds a custom DAO fee package for this deployer. The package is fixed when the vault is cloned, so a missing custom package has to be fixed before the first signature.
+   Before any wallet can connect, the page asks you to accept a short disclaimer: the page is provided as is, with no guarantee that it is fully reliable, and your wallet is the source of truth for what you sign. The pipeline refuses a wallet connection without it and logs the time of acceptance.
+3. The top of the page is a map of the vaults being deployed (one card for a single vault; the whole set and its connections with `deploy.campaign`, §5c). The step list on the right shows the stage being signed: done steps are filled, the step marked **You are here** is waiting for you, the rest are ahead. Click any finished step or vault to review its transactions (hashes, gas, arguments); a *Back to "You are here"* button and a banner bring you back.
+4. The page moves on by itself: after you connect and after every signature it opens the next transaction as soon as the pipeline has prepared it, so each signature is one click on **Sign**. A status bar under the header says what is happening (preparing the transaction, waiting for the wallet, waiting for the block, verifying) with an elapsed-time counter, so a slow RPC never looks like a frozen page.
+5. Every step builds its transaction as with a key (gas estimate, revert check), then hands the unsigned transaction to the page: contract (named: FusionFactory, PlasmaVault, AccessManager …), function, arguments, gas limit and raw calldata. Confirm it in the wallet; nonce and fees are set by the wallet. The page never offers the same transaction twice. After a page reload, the signature card offers to reconnect the wallet in place.
+6. The page returns the hash; the pipeline waits for the receipt, records state and moves on. Rejecting in the wallet or pressing *Reject* on the page sends nothing and does not stop the run: the transaction keeps waiting and *Sign* asks the wallet again. Stop the run with Ctrl+C in the terminal; re-running the same command resumes, and steps finished by an earlier run appear as *signed earlier*.
+7. After the last step the page shows the verification report and the deployed contracts, and keeps serving for `--signer-linger` minutes (default 30) so the record stays browsable. *Close signing session* stops it.
 
-The page is `tools/browser_signer/index.html`: plain HTML, no build step, wallet discovery through EIP-6963 (falls back to `window.ethereum`), nothing leaves the machine except the transactions you confirm. `DEPLOYER_PRIVATE_KEY` is ignored in this mode.
+**Roles.** The base setup (step `01b`) gives the deployer ATOMIST and FUSE_MANAGER, plus a role only when a configured step needs it: PRICE_ORACLE_MIDDLEWARE_MANAGER for price feeds, CONFIG_INSTANT_WITHDRAWAL_FUSES for an instant-withdrawal order, PRE_HOOKS_MANAGER for pre-hooks (`deploy/role_plan.py`). In the final roles step (`11`), OWNER, ATOMIST and FUSE_MANAGER grants are required; every other grant is optional and has a **Skip** button on the page (mark a grant `"required": true` in `roles.grants` to make it mandatory). Skipped grants are recorded in the state file and reported by the verification as missing, not failed. The alpha roles (ALPHA, UPDATE_MARKETS_BALANCES, UPDATE_REWARDS_BALANCE, CLAIM_REWARDS, TRANSFER_REWARDS) are not granted by the base run at all; once the alpha exists, grant the ones listed in `roles.grants` with `python -m deploy <strategy> --broadcast --signer browser --assign-alpha` (`make assign-alpha`), which runs only that grant step on the deployed vault.
+
+**On a fork.** The page works against an anvil fork too, which is the way to rehearse the signing itself. Point the wallet's network at the fork first (Rabby: More → Modify RPC URL; MetaMask: Networks → Edit → add the RPC URL); the page shows the fork's URL and reminds you. A fork has the live chain's id, so the chain id cannot show where the wallet sends. The pipeline therefore funds a random marker account on the fork only, and the page reads its balance through the wallet's RPC when you connect and again before every signature: a wallet still on the live RPC is refused and nothing reaches it. Fund the deployer on the fork with `cast rpc anvil_setBalance <deployer> 0x56BC75E2D63100000 --rpc-url <fork>`. The rehearsal stage (`--rehearse`) still runs with `--signer impersonate` or the fork key: it impersonates accounts and moves time, which a wallet cannot do.
+
+The page is `tools/browser_signer/index.html`: plain HTML, no build step, Fusion app design tokens, wallet discovery through EIP-6963 (falls back to `window.ethereum`). It binds to 127.0.0.1 only, refuses requests addressed to any other host name, and every POST carries a per-run token embedded in the page, so another site open in the browser cannot answer for you. Nothing leaves the machine except the transactions you confirm. `DEPLOYER_PRIVATE_KEY` is ignored in this mode.
+
+## 5c. Deploying a set of connected vaults
+
+A strategy is sometimes several vaults: an index vault that holds shares of per-asset vaults, which in turn hold other vaults. `deploy.campaign` deploys the whole set in one run from a small campaign file:
+
+```json
+{
+  "name": "my-vault-set",
+  "vaults": [
+    {"id": "leaf",   "strategy": "leaf.json"},
+    {"id": "parent", "strategy": "parent.json"},
+    {"id": "remote", "strategy": "remote.json", "blocked": "why it cannot be deployed yet"}
+  ],
+  "links": [
+    {"parent": "parent", "child": "leaf", "kind": "erc4626", "placeholder": "0x<stand-in ERC4626 in parent.json>"},
+    {"parent": "parent", "child": "remote", "kind": "cross-chain", "blocked": "no cross-chain fuse yet"}
+  ]
+}
+```
+
+```bash
+python -m deploy.campaign my-vault-set.campaign.json                                   # dry-run every vault
+DEPLOYER_ADDRESS=0x… python -m deploy.campaign my-vault-set.campaign.json --broadcast --signer browser
+# or: make sign-set CAMPAIGN=my-vault-set.campaign.json RPC_URL=… DEPLOYER_ADDRESS=0x…
+```
+
+- **Order.** Children deploy before their parents; the page numbers the vaults in that order.
+- **Stand-ins.** A parent's strategy is rehearsed alone against a stand-in ERC4626 (any vault with the same asset). Before the parent deploys, every occurrence of the link's `placeholder` in its strategy (substrates, price feeds, instant-withdrawal queue) is replaced by the child's deployed vault address; the resolved file is written to `.deploy-state/<campaign>/<vault>.resolved.json`.
+- **Connections.** Right after a parent deploys, each `erc4626` link is one signature on the child: its access manager grants the parent `WHITELIST_ROLE`, so the parent may deposit. Already granted means nothing is sent. `cross-chain` links are drawn only.
+- **Blocked.** A vault marked `blocked`, or a parent that holds a blocked child through an `erc4626` link, is skipped and shown as blocked with its reason. A failed stage stops the run; everything after it is marked blocked. Re-running resumes: finished steps are skipped.
+- **Chains.** `RPC_URL_<chainId>` overrides `RPC_URL` per chain for a set that spans chains.
+- **Page.** The top of the page becomes a map of the vaults and connections (status, order, signatures, a "You are here" marker). The right-hand list shows the steps of the stage being signed; click a finished vault or connection on the map to review it.
+
+Keep campaign files next to the strategies they reference (outside this repository for real clients, like the strategies themselves).
 
 ## 6. What the verification report checks
 

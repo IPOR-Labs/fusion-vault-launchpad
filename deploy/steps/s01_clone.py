@@ -3,9 +3,18 @@ from __future__ import annotations
 
 from dataclasses import asdict
 
+from eth_abi import decode
 from web3 import Web3
 
 NAME = "01_clone"
+
+
+def _call_as(call, sender, web3):
+    """`Call.call()` with an explicit `from` (the SDK's eth_call omits it)."""
+    raw = web3.eth.call({"to": call.to, "data": call.data, "from": Web3.to_checksum_address(sender)})
+    values = tuple(decode(call.output_types, bytes(raw)))
+    single = values[0] if len(values) == 1 else values
+    return call.decoder(single) if call.decoder is not None else single
 
 
 def _owner_model_banner(cfg, deployer, appointed_owner, keep_deployer_owner):
@@ -39,9 +48,14 @@ def _owner_model_banner(cfg, deployer, appointed_owner, keep_deployer_owner):
 
 
 def run(cfg, deploy_ctx, session, instance_holder, state, broadcast):
-    if state.fusion_instance:
+    # Skip only a clone that was actually sent. A state file can hold preview addresses from a
+    # clone that never reached the chain (older runs saved them before sending); drop those.
+    if state.fusion_instance and state.has_step(NAME):
         print(f"[{NAME}] already cloned at {state.fusion_instance['plasma_vault']} — skipping")
         return state.fusion_instance
+    if state.fusion_instance:
+        print(f"[{NAME}] discarding unsent preview addresses {state.fusion_instance['plasma_vault']} — cloning")
+        state.fusion_instance = None
 
     vault = cfg.raw["vault"]
     deployer = Web3.to_checksum_address(session.signer)
@@ -64,6 +78,14 @@ def run(cfg, deploy_ctx, session, instance_holder, state, broadcast):
               f"all roles), false = Mode B. Set it to silence this note.")
     owner = deployer if keep_deployer_owner else appointed_owner
     _owner_model_banner(cfg, deployer, appointed_owner, keep_deployer_owner)
+    if broadcast and owner != deployer:
+        # Every configuration step after the clone is signed by this run's signer. If the clone
+        # belongs to someone else, those steps cannot succeed and the vault would be left half-built.
+        raise RuntimeError(
+            f"[{NAME}] refusing to clone: the vault would be owned by {owner}, but this run signs as {deployer}, "
+            "which could then not grant any role or configure the vault. Either set vault.deployer_temporary_owner "
+            "to true (the deployer owns it during setup and hands OWNER to the appointed owner at the end), or run "
+            "the whole deployment signed by the appointed owner's wallet.")
 
     args = dict(
         asset_name=vault["name"],
@@ -74,8 +96,11 @@ def run(cfg, deploy_ctx, session, instance_holder, state, broadcast):
         dao_fee_package_index=int(vault["dao_fee_package_index"]),
     )
 
-    # Preview via eth_call to learn CREATE2 deterministic addresses.
-    preview = session.factory.clone(**args).call()
+    # Preview via eth_call to learn CREATE2 deterministic addresses. The call must come
+    # from the deployer: the factory picks the DAO fee package by msg.sender (a business
+    # client's own list first), and the SDK's Call.call() sends no `from`, so the preview
+    # would check the index against the default packages and revert for a client index.
+    preview = _call_as(session.factory.clone(**args), session.signer, session.ctx.web3)
     addrs = {
         "plasma_vault": preview.plasma_vault,
         "access_manager": preview.access_manager,
@@ -98,15 +123,15 @@ def run(cfg, deploy_ctx, session, instance_holder, state, broadcast):
         args={k: str(v) for k, v in args.items()},
     )
 
-    # Populate the in-memory instance for downstream steps in BOTH modes. In a
-    # dry-run this is never persisted (the orchestrator only saves state on
-    # --broadcast), so it cannot make a later real broadcast skip the clone.
-    state.fusion_instance = addrs
-
     if not broadcast:
+        # In-memory only for the dry-run's downstream steps; a dry-run never saves state.
+        state.fusion_instance = addrs
         return addrs
 
+    # Set the instance only after the clone is mined: a failed or unsigned send must not leave
+    # preview addresses in state, or the next run would skip the clone and configure nothing.
     receipt = session.factory.clone(**args).send()
+    state.fusion_instance = addrs
     tx_hash = receipt["transactionHash"].hex()
     print(f"[{NAME}] tx {tx_hash} gas_used={receipt['gasUsed']}")
     rec.executed = True

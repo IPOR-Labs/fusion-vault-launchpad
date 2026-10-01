@@ -5,6 +5,7 @@ from eth_abi import decode as abi_decode
 
 from web3 import Web3
 
+from deploy.chain_guards import price_problem
 from deploy.encoders.feeds import (
     build_collateral_token_morpho_create,
     build_dual_cross_reference_create,
@@ -55,19 +56,35 @@ def _impersonate_and_call(session, deploy_ctx, calldata, original_err):
     return tx_hash.hex()
 
 
+def _check_feed_price(session, asset, feed, pf):
+    """An existing feed must answer a plausible USD price before it is registered (dry-run too)."""
+    raw = session.ctx.call(feed, bytes.fromhex("feaf968c"))            # latestRoundData()
+    _rid, answer, _s, _u, _a = abi_decode(["uint80", "int256", "uint256", "uint256", "uint80"], bytes(raw))
+    (dec,) = abi_decode(["uint8"], bytes(session.ctx.call(feed, bytes.fromhex("313ce567"))))   # decimals()
+    problem = price_problem(f"feed {feed} for {asset}", int(answer), int(dec), bool(pf.get("allow_price_outside_sanity")))
+    if problem:
+        raise RuntimeError(f"[{NAME}] {problem}")
+    print(f"[{NAME}]   price check: {int(answer) / 10**int(dec):.6g} USD")
+
+
 def _deploy_one(cfg, deploy_ctx, session, broadcast, pf, vault_oracle=None):
     asset = Web3.to_checksum_address(pf["asset"])
     feed_type = pf["feed_type"]
     if feed_type == "prebuilt":
         name = pf["feed"]
+        if Web3.is_address(name):
+            raise ValueError(f"[{NAME}] price_feeds entry for {asset}: feed_type 'prebuilt' takes a name from the "
+                             f"context's price_feed_factories, got the address {name}. Use the name, or feed_type 'literal'.")
         addr = deploy_ctx.price_feed_factory(name)
         print(f"[{NAME}] asset={asset} prebuilt feed {name} -> {addr}")
+        _check_feed_price(session, asset, addr, pf)
         return addr
     if feed_type == "literal":
         # The source is an existing on-chain feed/aggregator (e.g. a Chainlink
         # USD aggregator) registered directly — no factory deploy needed.
         addr = Web3.to_checksum_address(pf["feed"])
         print(f"[{NAME}] asset={asset} literal feed -> {addr}")
+        _check_feed_price(session, asset, addr, pf)
         return addr
     if feed_type == "DualCrossReferencePriceFeedFactory":
         factory = deploy_ctx.price_feed_factory(feed_type)
@@ -218,4 +235,11 @@ def run(cfg, deploy_ctx, session, instance, state, broadcast):
                 f"{vault_oracle}: {unpriceable}. The vault would be broken — fix feeds "
                 f"(register a source on the vault's price_manager) before continuing."
             )
-        print(f"[{NAME}] ✅ verified: all {len(cfg.raw['price_feeds'])} assets price via vault oracle")
+        for pf in cfg.raw["price_feeds"]:
+            a = Web3.to_checksum_address(pf["asset"])
+            price, dec = abi_decode(["uint256", "uint256"], bytes(session.ctx.call(vault_oracle, build_get_asset_price(a))))
+            problem = price_problem(f"vault oracle {vault_oracle} for {a}", int(price), int(dec),
+                                    bool(pf.get("allow_price_outside_sanity")))
+            if problem:
+                raise RuntimeError(f"[{NAME}] CRITICAL HAZARD: {problem}")
+        print(f"[{NAME}] ✅ verified: all {len(cfg.raw['price_feeds'])} assets price via vault oracle, within the USD sanity range")

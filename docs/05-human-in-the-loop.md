@@ -12,7 +12,7 @@ The single most important boundary in this repository.
 |---|---|
 | A dry-run needs no key. | The agent can validate, preview addresses and print the full plan at any time, and should do so before asking for anything. |
 | A fork rehearsal uses anvil's public test key. | The agent runs rehearsals on its own; a real key must never be used against a fork. |
-| Creating a vault on a live chain needs the human's funded key in `.env`. | The agent asks the human to add `DEPLOYER_PRIVATE_KEY` and `RPC_URL` to `.env` themselves, waits, and never asks for the key in the conversation. |
+| Creating a vault on a live chain needs the human's funded account. | The agent offers two ways to sign: the local signing page, where the human confirms each transaction in their browser wallet and no key touches the disk (`--signer browser`, `docs/04-deploy.md` §5b), or a `DEPLOYER_PRIVATE_KEY` the human adds to `.env` themselves. Either way the human puts `RPC_URL` in `.env`, and the agent never asks for a key in the conversation. |
 | Whoever holds the key holds every role during the trial. | The human should treat the deployer account as the vault's admin until roles are moved to production addresses. |
 | Keys pasted into a chat are exposed. | If it happens, the agent says so and recommends rotating the key after deployment. |
 
@@ -25,7 +25,7 @@ The pipeline reads the key from the environment only, uses it only to sign the t
 | Drive the intake, write and update the human spec | Answer the `[client]` items below |
 | Resolve fuse and market availability, feed choices, dependency graph, queue params | Confirm chain, underlying, venues, target size, fee tier |
 | Write the JSON, run `spec_lint`, run dry-runs | Provide every address and say which are multisigs |
-| Start anvil, rehearse on the fork (`--broadcast --rehearse`), run `plan_diff` | Put the key and private RPC into `.env`; fund the account |
+| Start anvil, rehearse on the fork (`--broadcast --rehearse`), run `plan_diff` | Choose wallet signing (the page) or a key in `.env`; put the private RPC into `.env`; fund the account; on the page, accept the disclaimer and sign each transaction |
 | Run `--verify-only` | Say **"yes, deploy to <chain>"** for this exact file, in this session |
 | Resume an interrupted live run after confirming receipts | Approve the resumed run if any recorded tx is missing on-chain |
 

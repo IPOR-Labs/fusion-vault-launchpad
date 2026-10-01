@@ -38,7 +38,7 @@ My goal: <describe the vault you want, or "dry-run the shipped example so I can 
 2. It runs the doctor and the unit tests, then a dry-run of the example, and shows you the plan.
 3. It asks you the `[client]` questions one at a time, with a recommended default, and writes your answers into `strategies/<name>.md` and `.json` as it goes.
 4. It dry-runs your strategy until the plan reads right, then rehearses on a local fork and shows you the verification report and the plan/run diff.
-5. Only then does it ask you to put your key and private RPC into `.env` yourself, and asks for an explicit "yes" before running the live command, which it shows you in full first.
+5. Only then does it ask how you want to sign: in your browser wallet (Rabby, MetaMask) on a local signing page it serves at `http://127.0.0.1:8789`, or with a key you put into `.env` yourself. Either way you put the private RPC into `.env`, and it asks for an explicit "yes" before running the live command, which it shows you in full first. With the page, it hands you the URL and waits: you accept the disclaimer, connect the wallet and click Sign on each transaction while the vault map and the step list show where you are.
 
 If your agent skips a step, asks for your key in chat, or proposes a live broadcast before a fork rehearsal, stop it and point it at `AGENTS.md` §5. The pipeline itself also refuses a live broadcast that lacks the explicit flag or still contains placeholder addresses, but the agent's discipline is your first line of defence.
 

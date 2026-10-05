@@ -17,6 +17,8 @@ Turn the human's intent into a schema-valid strategy file, prove on a dry-run an
 
 If you resume work on an existing strategy, also read `strategies/<name>.json`, `strategies/<name>.md`, and `.deploy-state/<name>.json` if it exists.
 
+Everything else in the repository, and the public sources outside it, is listed in section 10.
+
 ## 3. Private key and RPC: the rules
 
 | Situation | What you do |
@@ -116,3 +118,46 @@ Each of these produced a check that now exists. Know why.
 ## 9. When you are unsure
 
 Stop and ask. A blocked deployment costs an hour. A mis-deployed vault can cost the human their capital and their reputation.
+
+## 10. Map of the repository and related sources
+
+This section replaces a separate `llms.txt`: this file is the entry point.
+
+**Manual (`docs/`)**
+
+| File | Contents |
+|---|---|
+| `README.md` | What the toolkit does, the three modes, the quick start, what has been verified |
+| `docs/01-concepts.md` | Vaults, fuses, substrates, roles, one-way switches, lifecycle, trust order |
+| `docs/02-setup.md` | Prerequisites, `.env`, anvil fork, checking the installation |
+| `docs/03-strategy-json.md` | Field reference for `strategies/<name>.json` and the chain contexts |
+| `docs/04-deploy.md` | Dry-run, fork rehearsal, live broadcast, vault sets, verification, recovery |
+| `docs/05-human-in-the-loop.md` | What only the human decides and how to ask |
+| `docs/06-troubleshooting.md` | Symptoms, causes, fixes |
+| `docs/07-resources.md` | Public sources and common on-chain reads |
+| `docs/08-glossary.md` | Terms |
+| `docs/09-using-with-your-agent.md` | How each agent tool finds this file, a starter prompt |
+| `docs/10-hardening.md` | Role handover, delays, the deployer's renounce, front-end listing |
+| `DISCLAIMER.md`, `CONTRIBUTING.md`, `SECURITY.md` | Terms of use; adding chains, fuses and steps; reporting a vulnerability |
+
+**Reference files**
+
+| Path | Contents |
+|---|---|
+| `strategies/example-usdc-aave-base.json` + `.md` | Placeholder single-venue USDC vault on Base; every address is an anvil test account, so the pipeline refuses it on a live chain |
+| `strategies/example-wsteth-usdc-loop-base.json` + `.md` | Placeholder leveraged wstETH/USDC loop on Morpho Blue (Base): collateral, borrow and flash-loan fuses, the callback handler, the legacy swapper, scheduled withdrawals, and what the alpha does after deployment |
+| `rehearsals/` | The SDK fuse actions the fork rehearsal runs for each example |
+| `templates/strategy-spec.md` | The shape of a human spec, with provenance tags |
+| `schema/strategy.schema.json` | Validation schema for strategy files |
+| `contexts/<chain>.json` | Chain contexts: factory, fuses, feed factories, pre-hooks, callback handlers, tokens |
+
+**Outside this repository**
+
+| Source | Use it for |
+|---|---|
+| [docs.ipor.io](https://docs.ipor.io) ([index](https://docs.ipor.io/llms.txt); append `.md` to any page URL) | Protocol documentation |
+| [ipor-abi](https://github.com/IPOR-Labs/ipor-abi) | Deployed addresses and ABIs per chain; `contexts/` is a cache of it |
+| [SDK skill: deploy and operate a vault](https://github.com/IPOR-Labs/ipor-fusion.py/blob/main/skills/ipor-deploy-vault/SKILL.md) | The SDK's own walk (clone, roles, market, deposit, execute), its invariants and revert selectors; read it for operating a vault after this toolkit created it |
+| [ipor-fusion.py README](https://github.com/IPOR-Labs/ipor-fusion.py) | Fuse wrappers, `VaultSimulator` (eth_simulateV1), the `fusion` CLI, the read-only MCP server at https://mcp.ipor.io/mcp |
+| [SDK worked examples](https://github.com/IPOR-Labs/ipor-fusion.py/tree/main/tests) (`tests/test_simulate_*.py`) | Executable strategy walks: vault from scratch, Morpho Blue and Aave V3 loops, Euler V2, swaps, reward claims; copy one for the alpha side |
+| [Alpha example bot](https://github.com/IPOR-Labs/ipor-fusion-alpha-example) | A runnable bot that operates an existing vault |

@@ -80,7 +80,7 @@ To deploy your own vault:
 ```
 deploy/            the pipeline: cli.py (entry), config, context, sdk_session, guards, steps/, encoders/, verification
 schema/            JSON schemas for strategies and chain contexts
-contexts/          per-chain address books (FusionFactory, fuses, feed factories, pre-hooks); a cache of public on-chain data
+contexts/          per-chain names into the vendored ipor-abi snapshots (contexts/ipor-abi/), pins with reasons, tokens
 strategies/        your strategy specs (.json machine spec + .md human spec); two shipped examples
 rehearsals/        per-strategy rehearsal scripts: the SDK fuse actions the fork rehearsal executes
 templates/         the human spec template

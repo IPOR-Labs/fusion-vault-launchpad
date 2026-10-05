@@ -76,6 +76,16 @@ def main(argv: list[str]) -> int:
         ctx = load_context(cfg.context_name)
         ctx_public_rpc = ctx.public_rpc
         rows.append((OK, f"strategy {strategy.name} valid: chain {cfg.chain_id}, context {cfg.context_name}, vault {cfg.raw['vault']['symbol']}"))
+        snap = ctx.snapshot
+        import datetime as _dt
+        try:
+            age = (_dt.date.today() - _dt.date.fromisoformat(snap.source.get("fetched", ""))).days
+        except ValueError:
+            age = None
+        from deploy.address_book import SNAPSHOT_MAX_AGE_DAYS
+        fresh = age is not None and age <= SNAPSHOT_MAX_AGE_DAYS
+        rows.append((OK if fresh else WARN, f"ipor-abi snapshot {snap.deployment} at {snap.commit[:10] or '?'}, "
+                     f"fetched {snap.source.get('fetched', '?')}" + ("" if fresh else " — run `make ipor-abi` and review the diff")))
         from deploy.guards import placeholder_accounts_in_config
         ph = placeholder_accounts_in_config(cfg.raw)
         if ph:

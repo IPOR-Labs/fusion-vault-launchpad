@@ -26,6 +26,7 @@ if str(ROOT) not in sys.path:
 from deploy.config import load_strategy
 from deploy.context import load_context
 from deploy.fuse_resolver import apply_whitelist_resolution
+from deploy.address_book import check_context_addresses
 from deploy.browser_signer import load_plan
 from deploy.guards import live_broadcast_problems, warn_public_rpc
 from deploy.sdk_session import open_session
@@ -278,8 +279,12 @@ def main(argv=None, *, shared_signer=None, signer_meta=None):
         if problems:
             sys.exit("Refusing to broadcast to a live chain:\n  - " + "\n  - ".join(problems))
 
-    # The FuseWhitelist, not the context file, decides which fuse address is current.
+    # The FuseWhitelist decides which fuse address is current; ipor-abi supplies and cross-checks the rest.
     apply_whitelist_resolution(cfg.raw, deploy_ctx, session.ctx.web3)
+    try:
+        check_context_addresses(deploy_ctx, session.ctx.web3)
+    except RuntimeError as e:
+        sys.exit(str(e))
 
     state = load_state(state_path, cfg.raw, force_restart=args.force_restart)
     # Resume only a vault this chain really has: the recorded clone must be mined here and the

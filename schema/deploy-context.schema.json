@@ -1,125 +1,83 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "Per-chain deploy context",
+  "description": "Names IPOR contracts by their ipor-abi key; addresses come from the vendored snapshot contexts/ipor-abi/<ipor_abi_deployment>.json (tools/refresh_ipor_abi.py) and fuses from the on-chain FuseWhitelist. A literal address appears only in pins (with a reason), external_addresses (third-party, with a source) and tokens.",
   "type": "object",
-  "required": [
-    "chain_id",
-    "ipor_abi_deployment",
-    "fusion_factory",
-    "price_oracle_middleware",
-    "fuse_whitelist",
-    "price_feed_factories",
-    "fuses"
-  ],
+  "required": ["chain_id", "ipor_abi_deployment", "contracts", "fuses"],
+  "additionalProperties": false,
+  "$defs": {
+    "address": {"type": "string", "pattern": "^0x[a-fA-F0-9]{40}$"},
+    "iporAbiKey": {"type": "string", "pattern": "^[A-Za-z][A-Za-z0-9_]*$"},
+    "keyMap": {"type": "object", "additionalProperties": {"$ref": "#/$defs/iporAbiKey"}}
+  },
   "properties": {
-    "chain_id": {
-      "type": "integer"
-    },
+    "$schema": {"type": "string"},
+    "chain_id": {"type": "integer"},
     "ipor_abi_deployment": {
+      "description": "Directory under ipor-abi mainnet/ whose addresses.json is vendored as contexts/ipor-abi/<name>.json.",
       "type": "string"
     },
-    "snapshot_block": {
-      "type": [
-        "integer",
-        "null"
-      ]
+    "snapshot_block": {"type": ["integer", "null"]},
+    "public_rpc": {
+      "description": "Read-only public endpoint for dry-runs when RPC_URL is unset; never used for --broadcast.",
+      "type": ["string", "null"]
     },
-    "fusion_factory": {
-      "type": "string",
-      "pattern": "^0x[a-fA-F0-9]{40}$"
-    },
-    "price_oracle_middleware": {
-      "type": "string",
-      "pattern": "^0x[a-fA-F0-9]{40}$"
-    },
-    "fuse_whitelist": {
-      "description": "On-chain FuseWhitelist proxy \u2014 the authority for fuse availability; the deployer gates addFuses on it (deploy/whitelist.py).",
-      "type": "string",
-      "pattern": "^0x[a-fA-F0-9]{40}$"
-    },
-    "price_feed_factories": {
+    "contracts": {
+      "description": "Root contracts by ipor-abi key. fusion_factory, price_oracle_middleware and fuse_whitelist are required; middleware_owner is used for fork impersonation only; morpho_blue and similar venue contracts may be named here when ipor-abi lists them.",
       "type": "object",
-      "additionalProperties": {
-        "type": "string",
-        "pattern": "^0x[a-fA-F0-9]{40}$"
-      }
-    },
-    "fuses": {
-      "type": "object",
-      "additionalProperties": {
-        "type": "string",
-        "pattern": "^0x[a-fA-F0-9]{40}$"
-      }
+      "required": ["fusion_factory", "price_oracle_middleware", "fuse_whitelist"],
+      "additionalProperties": {"$ref": "#/$defs/iporAbiKey"}
     },
     "standard_fuses": {
-      "description": "Fuses the FusionFactory injects into every vault (e.g. BurnRequestFeeFuse). Always present on-chain, never declared in a strategy JSON; the verifier treats them as expected.",
+      "description": "ipor-abi keys of the fuses the FusionFactory injects into every vault (e.g. BurnRequestFeeFuse), oldest first. Never declared in a strategy JSON; the verifier treats them as expected.",
       "type": "array",
-      "items": {
-        "type": "string",
-        "pattern": "^0x[a-fA-F0-9]{40}$"
-      }
+      "items": {"$ref": "#/$defs/iporAbiKey"}
     },
-    "pre_hooks": {
+    "price_feed_factories": {"$ref": "#/$defs/keyMap"},
+    "fuses": {
+      "description": "Fuse name used in strategies -> ipor-abi key, or null when ipor-abi has no entry and the name is a FuseWhitelist type name. The whitelist decides the address; ipor-abi is the fallback and the cross-check.",
       "type": "object",
-      "additionalProperties": {
-        "type": "string",
-        "pattern": "^0x[a-fA-F0-9]{40}$"
-      }
+      "additionalProperties": {"oneOf": [{"$ref": "#/$defs/iporAbiKey"}, {"type": "null"}]}
     },
+    "pre_hooks": {"$ref": "#/$defs/keyMap"},
     "callback_handlers": {
-      "description": "Stateless callback-handler contracts by ipor-abi name (CallbackHandlerMorpho, CallbackHandlerEuler). Registered on the vault by 03b_callback_handlers.",
+      "description": "Callback handler name -> ipor-abi key (e.g. CallbackHandlerMorpho).",
+      "$ref": "#/$defs/keyMap"
+    },
+    "pins": {
+      "description": "A fuse or pre-hook pinned to one address over the registries. Re-validated on every run: a pinned fuse must still be active on the FuseWhitelist.",
       "type": "object",
       "additionalProperties": {
-        "type": "string",
-        "pattern": "^0x[a-fA-F0-9]{40}$"
+        "type": "object",
+        "required": ["address", "reason", "checked"],
+        "additionalProperties": false,
+        "properties": {
+          "address": {"$ref": "#/$defs/address"},
+          "reason": {"type": "string", "minLength": 10},
+          "checked": {"type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}$"},
+          "revisit": {"type": "string"}
+        }
+      }
+    },
+    "external_addresses": {
+      "description": "Third-party contracts ipor-abi does not list (e.g. the Aave V3 pool), with where the address comes from.",
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "required": ["address", "source"],
+        "additionalProperties": false,
+        "properties": {"address": {"$ref": "#/$defs/address"}, "source": {"type": "string"}}
       }
     },
     "markets": {
+      "description": "Market name -> id, for ids the SDK's IporFusionMarkets does not know.",
       "type": "object",
-      "additionalProperties": {
-        "type": "integer"
-      }
-    },
-    "morpho_blue": {
-      "type": [
-        "string",
-        "null"
-      ]
-    },
-    "aave_v3_pool": {
-      "type": [
-        "string",
-        "null"
-      ]
+      "additionalProperties": {"type": "integer"}
     },
     "tokens": {
+      "description": "Token symbol -> address (third-party ERC20s); the address report checks symbol() on-chain.",
       "type": "object",
-      "additionalProperties": {
-        "type": "string",
-        "pattern": "^0x[a-fA-F0-9]{40}$"
-      }
-    },
-    "morpho_oracles": {
-      "type": "object",
-      "additionalProperties": {
-        "type": "string",
-        "pattern": "^0x[a-fA-F0-9]{40}$"
-      }
-    },
-    "public_rpc": {
-      "type": [
-        "string",
-        "null"
-      ],
-      "description": "Public read-only RPC used for dry-runs when RPC_URL is unset. Never used for a broadcast."
-    },
-    "middleware_owner": {
-      "type": [
-        "string",
-        "null"
-      ],
-      "pattern": "^0x[a-fA-F0-9]{40}$",
-      "description": "Holder of the manager role on the shared PriceOracleMiddleware. Only used to impersonate on an anvil fork when a feed must be registered on the shared middleware; never on a live chain."
+      "additionalProperties": {"$ref": "#/$defs/address"}
     }
   }
 }

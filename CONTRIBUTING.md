@@ -25,13 +25,13 @@ CI installs only the lightweight test deps and runs `pytest`, then validates eve
 
 ### Adding a chain
 
-1. Create `contexts/<ctx>.json` following `schema/deploy-context.schema.json`. Copy proxy addresses from `ipor-abi/mainnet/<deployment>/addresses.json`; never `…Impl` addresses. Set `public_rpc` to a read-only public endpoint.
-2. Fill `standard_fuses` oldest → newest (the factory-injected fuse and the whitelisted latest).
+1. Create `contexts/<ctx>.json` following `schema/deploy-context.schema.json`, with `ipor_abi_deployment` set to the folder name in `ipor-abi/mainnet/`. Name contracts by their ipor-abi key (`…Proxy`, never `…Impl`); do not write IPOR contract addresses. Set `public_rpc` to a read-only public endpoint.
+2. Run `make ipor-abi` to vendor the snapshot, fill `standard_fuses` oldest → newest by ipor-abi key, then `make check-context CONTEXT=<ctx>` until it reports no failure.
 3. Run a dry-run and a fork rehearsal for at least one strategy on the chain before opening the PR, and attach the verification report.
 
 ### Adding a fuse to a context
 
-Usually unnecessary: a strategy can name a fuse by its `FuseWhitelist` type name and the address is resolved on-chain (`deploy/fuse_resolver.py`). Add a context entry only to pin one of several active fuses, or for a fuse the whitelist does not carry. When you do:
+Usually unnecessary: a strategy can name a fuse by its `FuseWhitelist` type name and the address is resolved on-chain (`deploy/fuse_resolver.py`). Add a `fuses` entry (name → ipor-abi key) to give a strategy-facing name to an ipor-abi contract, and a `pins` entry (address, reason, date) only to choose one of several active versions or for a fuse ipor-abi does not list. When you do:
 
 1. Confirm it is whitelisted: `getFusesByMarketId(marketId)` on the chain's `FuseWhitelist`.
 2. Confirm `MARKET_ID()` on the fuse.

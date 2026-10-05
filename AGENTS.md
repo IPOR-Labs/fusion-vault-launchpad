@@ -36,7 +36,7 @@ You never print the contents of `.env`, never commit it, and never copy the key 
 ## 4. Operating rules
 
 1. **English for every artifact.** Talk to the human in their language; write specs, JSON, reports and commit messages in English.
-2. **Never invent on-chain facts.** Fuse addresses, market ids, whitelist status, role holders, prices, feed addresses: read them from the chain, from `contexts/<chain>.json`, or from the public sources in `docs/07-resources.md`. When you cannot verify something, write `unverified` and say what would verify it.
+2. **Never invent on-chain facts.** Fuse addresses, market ids, whitelist status, role holders, prices, feed addresses: read them from the chain (the FuseWhitelist), from the ipor-abi snapshot a context names (`contexts/ipor-abi/`), or from the public sources in `docs/07-resources.md`. When you cannot verify something, write `unverified` and say what would verify it.
 3. **Ask the human only what only the human knows.** Intent, chain, asset, venues, addresses, risk appetite, fees, whitelist and transferability choices. Resolve everything else yourself and show a short confirmation summary.
 4. **One question at a time, with a recommended default marked as such.** Always accept a custom value.
 5. **Persist as you go.** After every stage, write the answers into `strategies/<name>.md` and `.json`. Never hold state only in the conversation. Edit specs; do not overwrite them wholesale.
@@ -44,7 +44,7 @@ You never print the contents of `.env`, never commit it, and never copy the key 
 7. **Read the chain, not the labels.** Verification means reading the vault's own contracts; `--verify-only` does this. Logs and step names are not evidence.
 8. **Report faithfully.** If a check failed, show the failure. If a step was skipped, say so. Never mark something ✅ on data you did not fetch.
 9. **Results are not guarantees.** A clean dry-run, rehearsal or verification means the known checks passed. Say so plainly, and point the human to `DISCLAIMER.md` once at the start of a session.
-10. **Do not edit `contexts/` or `schema/` silently.** Propose the change with its source and ask, unless the human explicitly asked you to make it.
+10. **Do not edit `contexts/` or `schema/` silently.** Propose the change with its source and ask, unless the human explicitly asked you to make it. Never write an IPOR contract address into a context: name its ipor-abi key, or add a `pins` entry with the reason the registries are not enough.
 
 ## 5. Autonomy boundary
 
@@ -149,14 +149,14 @@ This section replaces a separate `llms.txt`: this file is the entry point.
 | `rehearsals/` | The SDK fuse actions the fork rehearsal runs for each example |
 | `templates/strategy-spec.md` | The shape of a human spec, with provenance tags |
 | `schema/strategy.schema.json` | Validation schema for strategy files |
-| `contexts/<chain>.json` | Chain contexts: factory, fuses, feed factories, pre-hooks, callback handlers, tokens |
+| `contexts/<chain>.json`, `contexts/ipor-abi/` | Chain contexts (names into ipor-abi, pins with reasons, tokens) and the vendored ipor-abi snapshots; `make check-context CONTEXT=<chain>` checks them against the chain |
 
 **Outside this repository**
 
 | Source | Use it for |
 |---|---|
 | [docs.ipor.io](https://docs.ipor.io) ([index](https://docs.ipor.io/llms.txt); append `.md` to any page URL) | Protocol documentation |
-| [ipor-abi](https://github.com/IPOR-Labs/ipor-abi) | Deployed addresses and ABIs per chain; `contexts/` is a cache of it |
+| [ipor-abi](https://github.com/IPOR-Labs/ipor-abi) | Deployed addresses and ABIs per chain; vendored in `contexts/ipor-abi/` (`make ipor-abi`) |
 | [SDK skill: deploy and operate a vault](https://github.com/IPOR-Labs/ipor-fusion.py/blob/main/skills/ipor-deploy-vault/SKILL.md) | The SDK's own walk (clone, roles, market, deposit, execute), its invariants and revert selectors; read it for operating a vault after this toolkit created it |
 | [ipor-fusion.py README](https://github.com/IPOR-Labs/ipor-fusion.py) | Fuse wrappers, `VaultSimulator` (eth_simulateV1), the `fusion` CLI, the read-only MCP server at https://mcp.ipor.io/mcp |
 | [SDK worked examples](https://github.com/IPOR-Labs/ipor-fusion.py/tree/main/tests) (`tests/test_simulate_*.py`) | Executable strategy walks: vault from scratch, Morpho Blue and Aave V3 loops, Euler V2, swaps, reward claims; copy one for the alpha side |

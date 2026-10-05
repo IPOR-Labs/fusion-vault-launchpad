@@ -116,7 +116,7 @@ class RehearsalEnv:
         return self.deploy_ctx.fuse(name)
 
     def token(self, name: str):
-        return Web3.to_checksum_address(self.deploy_ctx.raw["tokens"][name])
+        return self.deploy_ctx.token(name)
 
     def erc20(self, address: str) -> ERC20:
         return ERC20(self.ctx, Web3.to_checksum_address(address))

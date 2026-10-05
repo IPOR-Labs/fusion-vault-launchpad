@@ -37,6 +37,18 @@ def verify(cfg, deploy_ctx, session, instance, since_block: int | None = None) -
 
     print("\n=== verification report ===")
 
+    # 0. context addresses — the ipor-abi snapshot, pins and externals against this chain
+    try:
+        from deploy.address_book import FAIL as _AB_FAIL, WARN as _AB_WARN, ChainReader, address_rows
+        rows = address_rows(deploy_ctx, ChainReader(session.ctx.web3))
+        bad = [r for r in rows if r.verdict in (_AB_FAIL, _AB_WARN)]
+        for r in bad:
+            (_fail if r.verdict == _AB_FAIL else _warn)(f"context {r.category} {r.name} {r.address}: {r.note}")
+        if not [r for r in bad if r.verdict == _AB_FAIL]:
+            _ok(f"context addresses: {len(rows)} checks against ipor-abi {deploy_ctx.snapshot.commit[:10]} and the chain")
+    except Exception as e:
+        _warn(f"context address check could not run: {e}")
+
     # 1. underlying asset
     try:
         underlying = vault.underlying_asset_address().call()

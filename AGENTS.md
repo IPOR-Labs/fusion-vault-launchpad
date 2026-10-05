@@ -149,15 +149,7 @@ This section replaces a separate `llms.txt`: this file is the entry point.
 | `rehearsals/` | The SDK fuse actions the fork rehearsal runs for each example |
 | `templates/strategy-spec.md` | The shape of a human spec, with provenance tags |
 | `schema/strategy.schema.json` | Validation schema for strategy files |
-| `contexts/<chain>.json`, `contexts/ipor-abi/` | Chain contexts (names into ipor-abi, pins with reasons, tokens) and the vendored ipor-abi snapshots; `make check-context CONTEXT=<chain>` checks them against the chain |
+| `contexts/ipor-abi/` | Vendored ipor-abi snapshots: every IPOR contract address the pipeline uses (`make ipor-abi` refreshes them) |
+| `contexts/<chain>.json` | Optional per-chain overrides: public RPC, pins with reasons, aliases, external addresses, tokens; `make check-context CONTEXT=<chain>` checks a chain |
 
-**Outside this repository**
-
-| Source | Use it for |
-|---|---|
-| [docs.ipor.io](https://docs.ipor.io) ([index](https://docs.ipor.io/llms.txt); append `.md` to any page URL) | Protocol documentation |
-| [ipor-abi](https://github.com/IPOR-Labs/ipor-abi) | Deployed addresses and ABIs per chain; vendored in `contexts/ipor-abi/` (`make ipor-abi`) |
-| [SDK skill: deploy and operate a vault](https://github.com/IPOR-Labs/ipor-fusion.py/blob/main/skills/ipor-deploy-vault/SKILL.md) | The SDK's own walk (clone, roles, market, deposit, execute), its invariants and revert selectors; read it for operating a vault after this toolkit created it |
-| [ipor-fusion.py README](https://github.com/IPOR-Labs/ipor-fusion.py) | Fuse wrappers, `VaultSimulator` (eth_simulateV1), the `fusion` CLI, the read-only MCP server at https://mcp.ipor.io/mcp |
-| [SDK worked examples](https://github.com/IPOR-Labs/ipor-fusion.py/tree/main/tests) (`tests/test_simulate_*.py`) | Executable strategy walks: vault from scratch, Morpho Blue and Aave V3 loops, Euler V2, swaps, reward claims; copy one for the alpha side |
-| [Alpha example bot](https://github.com/IPOR-Labs/ipor-fusion-alpha-example) | A runnable bot that operates an existing vault |
+**Outside this repository:** `docs/07-resources.md` lists the public sources (docs.ipor.io, ipor-abi, the SDK, its deploy skill and worked examples, the MCP server, the alpha example bot) and the on-chain reads you will do often.

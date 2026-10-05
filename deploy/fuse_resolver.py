@@ -96,14 +96,16 @@ def config_refs(cfg_raw: dict) -> list[FuseRef]:
 
 
 def resolve_refs(refs: list[FuseRef], index, registry: dict[str, str | None], market_id_of,
-                 declared_markets: list[str], pins: dict[str, str] | None = None) -> Resolution:
+                 declared_markets: list[str], pins: dict[str, str] | None = None, known_as=None) -> Resolution:
     """Pure resolution over an index with `type_id(name)`, `type_of_address(addr)`, `active(type, market)`.
 
     `registry` maps a fuse name to its ipor-abi address (None when ipor-abi has no entry);
     `pins` maps a fuse name to the address the context pins, with a reason, over the registries.
     `market_id_of(name) -> int` maps market names; `declared_markets` are the balance-fuse markets
-    used for inference. Returns overrides for every name that resolved on the whitelist."""
+    used for inference. `known_as(addr) -> [ipor-abi keys]` names a chosen address in the report.
+    Returns overrides for every name that resolved on the whitelist."""
     pins = pins or {}
+    known_as = known_as or (lambda _a: [])
     res = Resolution()
     for ref in refs:
         reg = registry.get(ref.name)
@@ -166,7 +168,9 @@ def resolve_refs(refs: list[FuseRef], index, registry: dict[str, str | None], ma
         if reg_cs and reg_cs.lower() != chosen.lower():
             res.warns.append(f"{ref.name}: ipor-abi has {reg_cs} but {'the pin' if pin_cs else 'the whitelist'} gives {chosen} on {market} — ipor-abi lags or the pin is deliberate")
         elif not reg_cs:
-            res.notes.append(f"{ref.name}: not in ipor-abi (resolved on the whitelist only)")
+            keys = known_as(chosen)
+            res.notes.append(f"{ref.name}: in ipor-abi as {', '.join(keys)}" if keys
+                             else f"{ref.name}: not in ipor-abi (resolved on the whitelist only)")
         res.notes.append(f"{ref.name} [{via}] market={market} -> {chosen}")
     return res
 
@@ -176,7 +180,8 @@ def apply_whitelist_resolution(cfg_raw: dict, deploy_ctx, w3, log=print) -> Reso
     index = WhitelistIndex(w3, deploy_ctx.fuse_whitelist)
     declared = sorted({bf["market"] for bf in cfg_raw.get("balance_fuses", [])})
     registry = {r.name: deploy_ctx.registry_fuse(r.name) for r in config_refs(cfg_raw)}
-    res = resolve_refs(config_refs(cfg_raw), index, registry, deploy_ctx.market_id, declared, deploy_ctx.pins())
+    res = resolve_refs(config_refs(cfg_raw), index, registry, deploy_ctx.market_id, declared, deploy_ctx.pins(),
+                       known_as=deploy_ctx.snapshot.keys_for)
     log(f"[fuse_resolver] FuseWhitelist @ {index.whitelist}: {len(res.overrides)} of {len(config_refs(cfg_raw))} fuse names resolved on-chain")
     for n in res.notes:
         log(f"    resolve  {n}")

@@ -1,79 +1,12 @@
 {
   "$schema": "../schema/deploy-context.schema.json",
-  "chain_id": 999,
-  "ipor_abi_deployment": "mainnet-hyperevm-fusion",
-  "snapshot_block": null,
   "public_rpc": "https://rpc.hyperliquid.xyz/evm",
-  "contracts": {
-    "fusion_factory": "IporFusionFactoryProxy",
-    "price_oracle_middleware": "PriceOracleMiddlewareUsdWithRolesProxy",
-    "fuse_whitelist": "IporFusionFuseWhitelistProxy",
-    "middleware_owner": "IporFusionPriceOracleMiddlewareWithRolesOwner",
-    "morpho_blue": "Morpho"
-  },
-  "standard_fuses": [
-    "BurnRequestFeeFuse",
-    "BurnRequestFeeFuseV2"
-  ],
-  "price_feed_factories": {
-    "ERC4626PriceFeedFactory": "ERC4626PriceFeedFactoryProxy",
-    "DualCrossReferencePriceFeedFactory": "DualCrossReferencePriceFeedFactoryProxy",
-    "CollateralTokenOnMorphoMarketPriceFeedFactory": "CollateralTokenOnMorphoMarketPriceFeedFactoryProxy",
-    "ChainlinkGuardedPriceFeedFactory": "ChainlinkGuardedPriceFeedFactoryProxy",
-    "IporFusionPriceFeedUSD": "IporFusionPriceFeedUSD"
-  },
-  "pre_hooks": {
-    "ExchangeRateValidatorPreHook": "ExchangeRateValidatorPreHook",
-    "PauseFunctionPreHook": "PreHookPauseFunction",
-    "UpdateBalancesIgnoreDustPreHook": "PreHookUpdateBalancesIgnoreDust",
-    "ExternalStatePausePreHook": "ExternalStatePausePreHook"
-  },
-  "callback_handlers": {
-    "CallbackHandlerMorpho": "CallbackHandlerMorpho"
-  },
-  "fuses": {
-    "SupplyFuseMorpho": "SupplyFuseMorpho",
-    "CollateralFuseMorpho": "CollateralFuseMorpho",
-    "BorrowFuseMorpho": "BorrowFuseMorpho",
-    "FlashloanFuseMorpho": "FlashloanFuseMorpho",
-    "BalanceFuseMorpho": "BalanceFuseMorpho",
-    "BalanceFuseFlashLoanMorpho": "BalanceFuseFlashLoanMorpho",
-    "SupplyFuseMorphoLiquidityInMarkets": "SupplyFuseMorphoLiquidityInMarkets",
-    "BalanceFuseMorphoLiquidityInMarkets": "BalanceFuseMorphoLiquidityInMarkets",
-    "ClaimRewardsFuseMorpho": "ClaimRewardsFuseMorpho",
-    "UniversalTokenSwapperFuseV2": "UniversalTokenSwapperFuseV2",
-    "BalanceFuseUniversalTokenSwapperV2": "BalanceFuseUniversalTokenSwapperV2",
-    "UniversalTokenSwapperFuse": "UniversalTokenSwapperFuse",
-    "BalanceFuseUniversalTokenSwapper": "BalanceFuseUniversalTokenSwapper",
-    "SupplyFuseErc4626Market1": "SupplyFuseErc4626Market1",
-    "BalanceFuseErc4626Market1": "BalanceFuseErc4626Market1",
-    "SupplyFuseErc4626Market2": "SupplyFuseErc4626Market2",
-    "BalanceFuseErc4626Market2": "BalanceFuseErc4626Market2",
-    "FuseRequestSharesPlasmaVaultMarket1": "FuseRequestSharesPlasmaVaultMarket1",
-    "FuseRedeemFromRequestPlasmaVaultMarket1": "FuseRedeemFromRequestPlasmaVaultMarket1",
-    "FuseRequestSharesPlasmaVaultV2": "FuseRequestSharesPlasmaVaultV2",
-    "ExternalStateOperationFuse": "ExternalStateOperationFuse",
-    "ExternalStateBalanceFuse": "ExternalStateBalanceFuse",
-    "ExternalStateRescueFuse": "ExternalStateRescueFuse",
-    "ExternalStateUnpauseFuse": "ExternalStateUnpauseFuse",
-    "ExchangeRateValidatorPreHook": "ExchangeRateValidatorPreHook",
-    "ERC20BalanceFuse": "BalanceFuseErc20"
-  },
-  "markets": {
-    "ERC20_VAULT_BALANCE": 7,
-    "UNIVERSAL_TOKEN_SWAPPER": 12,
-    "MORPHO": 14,
-    "MORPHO_FLASH_LOAN": 19,
-    "MORPHO_LIQUIDITY_IN_MARKETS": 41,
-    "HYPERCORE": 47,
-    "EXTERNAL_STATE": 50,
-    "UNIVERSAL_TOKEN_SWAPPER_V2": 1202,
-    "ERC4626_0001": 100001,
-    "ERC4626_0002": 100002
-  },
   "tokens": {
     "USDC": "0xb88339CB7199b77E23DB6E890353E22632Ba630f",
     "USDT0": "0xB8CE59FC3717ada4C02eaDF9682A9e934F625ebb",
     "WHYPE": "0x5555555555555555555555555555555555555555"
+  },
+  "markets": {
+    "HYPERCORE": 47
   }
 }

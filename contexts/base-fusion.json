@@ -1,64 +1,11 @@
 {
   "$schema": "../schema/deploy-context.schema.json",
-  "chain_id": 8453,
-  "ipor_abi_deployment": "mainnet-base-fusion",
-  "snapshot_block": null,
   "public_rpc": "https://base-rpc.publicnode.com",
-  "contracts": {
-    "fusion_factory": "IporFusionFactoryProxy",
-    "price_oracle_middleware": "PriceOracleMiddlewareUsdWithRolesProxy",
-    "fuse_whitelist": "IporFusionFuseWhitelistProxy",
-    "middleware_owner": "IporFusionPriceOracleMiddlewareWithRolesOwner",
-    "morpho_blue": "Morpho"
-  },
-  "standard_fuses": [
-    "BurnRequestFeeFuse",
-    "BurnRequestFeeFuseV2"
-  ],
-  "price_feed_factories": {
-    "ERC4626PriceFeedFactory": "ERC4626PriceFeedFactoryProxy",
-    "DualCrossReferencePriceFeedFactory": "DualCrossReferencePriceFeedFactoryProxy",
-    "CollateralTokenOnMorphoMarketPriceFeedFactory": "CollateralTokenOnMorphoMarketPriceFeedFactoryProxy",
-    "PtPriceFeedFactory": "PtPriceFeedFactoryProxy"
-  },
-  "pre_hooks": {
-    "ExchangeRateValidatorPreHook": "ExchangeRateValidatorPreHook",
-    "UpdateBalancesPreHook": "PreHookUpdateBalances",
-    "PauseFunctionPreHook": "PreHookPauseFunction"
-  },
-  "callback_handlers": {
-    "CallbackHandlerMorpho": "CallbackHandlerMorpho",
-    "CallbackHandlerEulerV2": "CallbackHandlerEulerV2"
-  },
-  "fuses": {
-    "MorphoSupplyFuse": "SupplyFuseMorpho",
-    "MorphoBorrowFuse": null,
-    "MorphoCollateralFuse": "CollateralFuseMorpho",
-    "MorphoFlashLoanFuse": "FlashloanFuseMorpho",
-    "MorphoBalanceFuse": "BalanceFuseMorpho",
-    "MorphoFlashLoanBalanceFuse": "BalanceFuseFlashLoanMorpho",
-    "AaveV3SupplyFuse": "SupplyFuseAaveV3",
-    "AaveV3BorrowFuse": null,
-    "AaveV3BalanceFuse": "BalanceFuseAaveV3",
-    "EulerV2SupplyFuse": "SupplyFuseEulerV2",
-    "EulerV2BorrowFuse": "BorrowFuseEulerV2",
-    "EulerV2CollateralFuse": "CollateralFuseEulerV2",
-    "EulerV2ControllerFuse": "ControllerFuseEulerV2",
-    "EulerV2BalanceFuse": "BalanceFuseEulerV2",
-    "SwapFuseUniversalTokenSwapper": "SwapFuseUniversalTokenSwapper",
-    "UniversalTokenSwapperFuseV2": "UniversalTokenSwapperFuseV2",
-    "UniversalTokenSwapperEthFuseV2": "UniversalTokenSwapperEthFuseV2",
-    "UniversalTokenSwapperWithVerificationFuse": "SwapFuseUniversalTokenSwapperWithVerification",
-    "SwapFuseUniversalTokenSwapperWithVerificationV2": "SwapFuseUniversalTokenSwapperWithVerificationV2",
-    "UniversalTokenSwapperBalanceFuse": "BalanceFuseUniversalTokenSwapper",
-    "BalanceFuseUniversalTokenSwapperV2": "BalanceFuseUniversalTokenSwapperV2",
-    "OdosSwapperFuse": "OdosSwapperFuse",
-    "OdosSwapperBalanceFuse": "BalanceFuseOdosSwapper",
-    "ERC20BalanceFuse": null,
-    "MerklClaimFuse": "MerklClaimFuse",
+  "aliases": {
     "MorphoClaimRewardsFuse": "ClaimRewardsFuseMorpho",
-    "EulerRewardTokenClaimFuse": null,
-    "ExchangeRateValidatorPreHook": "ExchangeRateValidatorPreHook"
+    "MorphoFlashLoanBalanceFuse": "BalanceFuseFlashLoanMorpho",
+    "OdosSwapperBalanceFuse": "BalanceFuseOdosSwapper",
+    "UniversalTokenSwapperBalanceFuse": "BalanceFuseUniversalTokenSwapper"
   },
   "pins": {
     "EulerRewardTokenClaimFuse": {
@@ -66,16 +13,6 @@
       "reason": "Not in ipor-abi; listed active on the whitelist as type RewardEulerTokenClaimFuse",
       "checked": "2026-10-05"
     }
-  },
-  "markets": {
-    "AAVE_V3": 1,
-    "ERC20_VAULT_BALANCE": 7,
-    "EULER_V2": 11,
-    "UNIVERSAL_TOKEN_SWAPPER": 12,
-    "MORPHO": 14,
-    "MORPHO_FLASH_LOAN": 19,
-    "ODOS_SWAPPER": 42,
-    "UNIVERSAL_TOKEN_SWAPPER_V2": 1202
   },
   "tokens": {
     "cbBTC": "0xcbB7C0000aB88B473b1f5aFd9ef808440eed33Bf",

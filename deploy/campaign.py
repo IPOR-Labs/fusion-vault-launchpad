@@ -403,7 +403,7 @@ class CampaignRun:
         print(f"\n[campaign] ===== connect {link.parent} → {link.child}: WHITELIST_ROLE for {parent} on {am} =====")
         if self.signer:
             self.signer.begin_stage(self._link_meta(link))
-        session = open_session(child_cfg, load_context(child_cfg.context_name), broadcast=True, signer_mode=self.args.signer,
+        session = open_session(child_cfg, load_context(child_cfg.context_name, chain_id=child_cfg.chain_id), broadcast=True, signer_mode=self.args.signer,
                                signer_port=self.args.signer_port, browser_signer=self.signer)
         rec = RunRecorder(strategy=link.id, config_hash="", mode="broadcast", chain_id=child_cfg.chain_id, rpc_source="",
                           signer=str(session.signer), gas_multiplier=1.0, context=child_cfg.context_name)

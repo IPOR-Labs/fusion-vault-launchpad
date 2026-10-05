@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Refresh the vendored ipor-abi snapshots in contexts/ipor-abi/ (`make ipor-abi`).
 
-For every chain context, download `mainnet/<ipor_abi_deployment>/addresses.json` from
+For every vendored deployment and every context overrides file, download `mainnet/<ipor_abi_deployment>/addresses.json` from
 IPOR-Labs/ipor-abi at the current `main` commit (or `--ref`), write it with its commit and
 fetch date, and print the keys that were added, removed or changed. Review the diff before
 committing: a changed key moves every vault deployed afterwards to the new contract.
@@ -22,6 +22,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
+from deploy.context import deployment_for  # noqa: E402
 from deploy.ipor_abi import REPOSITORY, SNAPSHOT_DIR, snapshot_diff, snapshot_document  # noqa: E402
 
 CONTEXTS = ROOT / "contexts"
@@ -44,10 +45,11 @@ def fetch(deployment: str, commit: str) -> dict:
 
 
 def deployments() -> list[str]:
-    out = []
+    """Every deployment already vendored, plus one per context overrides file."""
+    out = sorted(p.stem for p in SNAPSHOT_DIR.glob("*.json"))
     for p in sorted(CONTEXTS.glob("*.json")):
-        d = json.loads(p.read_text()).get("ipor_abi_deployment")
-        if d and d not in out:
+        d = json.loads(p.read_text()).get("ipor_abi_deployment") or deployment_for(p.stem)
+        if d not in out:
             out.append(d)
     return out
 

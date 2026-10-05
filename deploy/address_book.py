@@ -101,8 +101,9 @@ def _age_days(fetched: str, today: dt.date) -> int | None:
         return None
 
 
-def address_rows(ctx, reader, today: dt.date | None = None) -> list[AddrRow]:
-    """Pure over `reader` (see ChainReader): one row per checked address."""
+def address_rows(ctx, reader, today: dt.date | None = None, uses: dict | None = None) -> list[AddrRow]:
+    """Pure over `reader` (see ChainReader): one row per checked address. `uses` narrows pre-hooks,
+    callback handlers and price-feed factories to what a strategy names (see `strategy_uses`)."""
     today = today or dt.date.today()
     rows: list[AddrRow] = []
     snap = ctx.snapshot
@@ -131,9 +132,9 @@ def address_rows(ctx, reader, today: dt.date | None = None) -> list[AddrRow]:
         add(AddrRow(category, name, addr, source, OK if has else FAIL, extra if has else "no contract code at this address"))
         return has
 
-    contracts = ctx.raw.get("contracts", {})
     roots = {}
-    for ref, key in contracts.items():
+    for ref in ctx.contract_refs():
+        key = ctx.contract_key(ref)
         addr = resolved("contract", ref, lambda r=ref: ctx.resolve_address(r), f"ipor-abi {key}")
         if not addr:
             continue
@@ -155,7 +156,7 @@ def address_rows(ctx, reader, today: dt.date | None = None) -> list[AddrRow]:
 
     # standard fuses
     std = resolved("standard_fuse", "standard_fuses", ctx.standard_fuses, "ipor-abi") or []
-    pairs = list(zip(ctx.raw.get("standard_fuses", []), std))
+    pairs = list(zip(ctx.standard_fuse_keys(), std))
     for i, (key, addr) in enumerate(pairs):
         # older versions stay on every vault cloned before the upgrade, so only the newest must be active
         if code_row("standard_fuse", key, addr, f"ipor-abi {key}") and wl and i == len(pairs) - 1:
@@ -168,21 +169,27 @@ def address_rows(ctx, reader, today: dt.date | None = None) -> list[AddrRow]:
             add(AddrRow("standard_fuse", "factory.getBurnRequestFeeFuseAddress()", burn, "chain", WARN,
                         "the factory injects a fuse the context does not list as standard"))
 
-    # pre-hooks, callback handlers, price-feed factories
-    for name, key in ctx.raw.get("pre_hooks", {}).items():
-        addr = resolved("pre_hook", name, lambda n=name: ctx.pre_hook(n), f"ipor-abi {key}")
-        if addr and code_row("pre_hook", name, addr, "pin" if ctx.pin(name) else f"ipor-abi {key}") and wl:
+    # pre-hooks, callback handlers, price-feed factories: what the strategy uses, else every one ipor-abi lists
+    keys = sorted(snap.addresses)
+    uses = uses or {}
+    listed = [k for k in keys if snap.get(k)]   # zero-address entries mean "not on this chain"
+    hooks = uses["pre_hooks"] if "pre_hooks" in uses else [k for k in listed if "PreHook" in k and not k.startswith("UniversalReader")]
+    handlers = uses["callback_handlers"] if "callback_handlers" in uses else [k for k in listed if k.startswith("CallbackHandler")]
+    factories = uses["price_feed_factories"] if "price_feed_factories" in uses else [k[:-len("Proxy")] for k in listed if k.endswith("PriceFeedFactoryProxy")]
+    for name in dict.fromkeys(hooks):
+        addr = resolved("pre_hook", name, lambda n=name: ctx.pre_hook(n), "ipor-abi")
+        if addr and code_row("pre_hook", name, addr, "pin" if ctx.pin(name) else f"ipor-abi {ctx.pre_hook_key(name)}") and wl:
             entry = reader.whitelist_entry(wl, addr)
             if entry and entry[0] != STATE_NAMES[STATE_ACTIVE]:
                 add(AddrRow("pre_hook", name, addr, "whitelist", WARN, f"whitelist state {entry[0]} (type {entry[1]})"))
-    for name, key in ctx.raw.get("callback_handlers", {}).items():
-        addr = resolved("callback_handler", name, lambda n=name: ctx.callback_handler(n), f"ipor-abi {key}")
+    for name in dict.fromkeys(handlers):
+        addr = resolved("callback_handler", name, lambda n=name: ctx.callback_handler(n), "ipor-abi")
         if addr:
-            code_row("callback_handler", name, addr, f"ipor-abi {key}")
-    for name, key in ctx.raw.get("price_feed_factories", {}).items():
-        addr = resolved("price_feed_factory", name, lambda n=name: ctx.price_feed_factory(n), f"ipor-abi {key}")
+            code_row("callback_handler", name, addr, f"ipor-abi {name}")
+    for name in dict.fromkeys(factories):
+        addr = resolved("price_feed_factory", name, lambda n=name: ctx.price_feed_factory(n), "ipor-abi")
         if addr:
-            code_row("price_feed_factory", name, addr, f"ipor-abi {key}")
+            code_row("price_feed_factory", name, addr, f"ipor-abi {ctx.feed_factory_key(name)}")
 
     # pins (fuse pins are re-validated by the fuse resolver; listed here for the record)
     for name, p in ctx.raw.get("pins", {}).items():
@@ -221,8 +228,14 @@ def format_rows(rows: list[AddrRow], show_ok: bool = False) -> list[str]:
     return out
 
 
-def check_context_addresses(deploy_ctx, w3, log=print, show_ok: bool = False) -> list[AddrRow]:
-    rows = address_rows(deploy_ctx, ChainReader(w3))
+def strategy_uses(cfg_raw: dict) -> dict:
+    """The pre-hooks and callback handlers a strategy names (feed factories: all of them)."""
+    return {"pre_hooks": [h["name"] for h in cfg_raw.get("pre_hooks", [])],
+            "callback_handlers": [c["handler"] for c in cfg_raw.get("callback_handlers", [])]}
+
+
+def check_context_addresses(deploy_ctx, w3, log=print, show_ok: bool = False, cfg_raw: dict | None = None) -> list[AddrRow]:
+    rows = address_rows(deploy_ctx, ChainReader(w3), uses=strategy_uses(cfg_raw) if cfg_raw else None)
     fails = [r for r in rows if r.verdict == FAIL]
     warns = [r for r in rows if r.verdict == WARN]
     log(f"[address_book] context {deploy_ctx.name}: {len(rows)} checks, {len(warns)} warning(s), {len(fails)} failure(s)")

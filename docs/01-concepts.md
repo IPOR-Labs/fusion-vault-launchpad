@@ -47,7 +47,7 @@ A vault launches in a **trial posture**: whitelisted, non-transferable, one acco
 |---|---|---|---|
 | `strategies/<name>.md` | intake | Human spec, the reviewer's source of truth | yes |
 | `strategies/<name>.json` | agent or human | Machine spec; the only thing the deployer reads | yes |
-| `contexts/<ctx>.json` | maintainers | Per-chain names into ipor-abi, pins, tokens | yes |
+| `contexts/<ctx>.json` | maintainers | Optional per-chain overrides (public RPC, pins, tokens) | yes |
 | `.deploy-state/<name>.plan.json` | dry-run | Every intended on-chain action with decoded args | no |
 | `.deploy-state/<name>.json` | `--broadcast` | Idempotency record: config hash, cloned addresses, completed steps, tx hashes | no |
 | `.deploy-state/<name>.run.json` | `--broadcast` | Same shape as the plan plus tx hashes and gas | no |
@@ -71,6 +71,6 @@ When two sources disagree, the higher one wins:
 1. **The chain.** `FuseWhitelist.getFusesByMarketId`, the vault's `AccessManager`, the vault's own price manager, `getDependencyBalanceGraph`, `getTargetFunctionRole`.
 2. **[`IPOR-Labs/ipor-abi`](https://github.com/IPOR-Labs/ipor-abi)** (`mainnet/<deployment>/addresses.json` and the README fuse lists).
 3. **[`IPOR-Labs/ipor-fusion`](https://github.com/IPOR-Labs/ipor-fusion) source on `main`** for substrate layouts and fuse behaviour.
-4. **`contexts/*.json`** in this repository: names that point into a vendored snapshot of (2), plus pins with their reasons. Every run checks them against (1).
+4. **`contexts/ipor-abi/`** in this repository: a vendored snapshot of (2), plus the optional `contexts/*.json` overrides (pins with their reasons). Every run checks them against (1).
 5. **[docs.ipor.io](https://docs.ipor.io)** for concepts and procedures.
 6. **Anything a person remembers.**

@@ -39,8 +39,8 @@ def verify(cfg, deploy_ctx, session, instance, since_block: int | None = None) -
 
     # 0. context addresses — the ipor-abi snapshot, pins and externals against this chain
     try:
-        from deploy.address_book import FAIL as _AB_FAIL, WARN as _AB_WARN, ChainReader, address_rows
-        rows = address_rows(deploy_ctx, ChainReader(session.ctx.web3))
+        from deploy.address_book import FAIL as _AB_FAIL, WARN as _AB_WARN, ChainReader, address_rows, strategy_uses
+        rows = address_rows(deploy_ctx, ChainReader(session.ctx.web3), uses=strategy_uses(cfg.raw))
         bad = [r for r in rows if r.verdict in (_AB_FAIL, _AB_WARN)]
         for r in bad:
             (_fail if r.verdict == _AB_FAIL else _warn)(f"context {r.category} {r.name} {r.address}: {r.note}")

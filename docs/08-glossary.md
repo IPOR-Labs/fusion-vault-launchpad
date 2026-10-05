@@ -6,7 +6,7 @@
 | **Alpha** | Whoever calls `execute([FuseAction…])` on the vault: a bot, a service, or a person. Holds `ALPHA_ROLE` (200). |
 | **Atomist** | The strategist who designs and governs the vault. Holds `ATOMIST_ROLE` (100). In this repo, "the human operator". |
 | **Balance fuse** | The fuse that reports the vault's position value in one market. Exactly one per market. |
-| **Chain context** | `contexts/<ctx>.json`: per-chain names into the vendored `ipor-abi` snapshot, plus pins, external addresses and tokens. |
+| **Chain context** | The vendored `ipor-abi` snapshot for a chain (`contexts/ipor-abi/`), plus optional overrides in `contexts/<ctx>.json`: public RPC, pins, aliases, external addresses, tokens. |
 | **Contribution** | A fee that is burned, raising the remaining depositors' share price: request contribution and instant-withdraw contribution. Not revenue. |
 | **DAO fee package** | The management/performance fee to the IPOR DAO, chosen by `dao_fee_package_index` at clone. Immutable. |
 | **Dependency (balance) graph** | Per-market list of markets whose balances must be refreshed together. Every balance-fuse market except the idle balance depends on `ERC20_VAULT_BALANCE` (7). Derived by the deployer, verified on-chain. |

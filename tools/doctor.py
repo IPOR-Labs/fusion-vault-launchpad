@@ -73,7 +73,7 @@ def main(argv: list[str]) -> int:
         from deploy.config import load_strategy
         from deploy.context import load_context
         cfg = load_strategy(strategy)
-        ctx = load_context(cfg.context_name)
+        ctx = load_context(cfg.context_name, chain_id=cfg.chain_id)
         ctx_public_rpc = ctx.public_rpc
         rows.append((OK, f"strategy {strategy.name} valid: chain {cfg.chain_id}, context {cfg.context_name}, vault {cfg.raw['vault']['symbol']}"))
         snap = ctx.snapshot

@@ -1,97 +1,19 @@
 {
   "$schema": "../schema/deploy-context.schema.json",
-  "chain_id": 42161,
-  "ipor_abi_deployment": "mainnet-arbitrum-fusion",
-  "snapshot_block": null,
   "public_rpc": "https://arb1.arbitrum.io/rpc",
-  "contracts": {
-    "fusion_factory": "IporFusionFactoryProxy",
-    "price_oracle_middleware": "PriceOracleMiddlewareUsdWithRolesProxy",
-    "fuse_whitelist": "IporFusionFuseWhitelistProxy",
-    "middleware_owner": "IporFusionPriceOracleMiddlewareWithRolesOwner",
-    "morpho_blue": "Morpho"
-  },
-  "standard_fuses": [
-    "BurnRequestFeeFuse",
-    "BurnRequestFeeFuseV2"
-  ],
-  "price_feed_factories": {
-    "ERC4626PriceFeedFactory": "ERC4626PriceFeedFactoryProxy",
-    "DualCrossReferencePriceFeedFactory": "DualCrossReferencePriceFeedFactoryProxy",
-    "CollateralTokenOnMorphoMarketPriceFeedFactory": "CollateralTokenOnMorphoMarketPriceFeedFactoryProxy",
-    "ChainlinkGuardedPriceFeedFactory": "ChainlinkGuardedPriceFeedFactoryProxy"
-  },
-  "pre_hooks": {
-    "ExchangeRateValidatorPreHook": "ExchangeRateValidatorPreHook",
-    "PauseFunctionPreHook": "PreHookPauseFunction",
-    "ExternalStatePausePreHook": "ExternalStatePausePreHook"
-  },
-  "callback_handlers": {
-    "CallbackHandlerMorpho": "CallbackHandlerMorpho",
-    "CallbackHandlerEulerV2": "CallbackHandlerEulerV2"
-  },
-  "fuses": {
-    "SupplyFuseAaveV3": "SupplyFuseAaveV3",
-    "AaveV3WithPriceOracleMiddlewareBalanceFuse": "AaveV3WithPriceOracleMiddlewareBalanceFuse",
-    "SupplyFuseMorpho": "SupplyFuseMorpho",
-    "CollateralFuseMorpho": "CollateralFuseMorpho",
-    "FlashloanFuseMorpho": "FlashloanFuseMorpho",
-    "BalanceFuseMorpho": "BalanceFuseMorpho",
-    "BalanceFuseFlashLoanMorpho": "BalanceFuseFlashLoanMorpho",
-    "SupplyFuseEulerV2": "SupplyFuseEulerV2",
-    "BorrowFuseEulerV2": "BorrowFuseEulerV2",
-    "CollateralFuseEulerV2": "CollateralFuseEulerV2",
-    "ControllerFuseEulerV2": "ControllerFuseEulerV2",
-    "BatchFuseEulerV2": "BatchFuseEulerV2",
-    "BalanceFuseEulerV2": "BalanceFuseEulerV2",
-    "RewardEulerTokenClaimFuse": "RewardEulerTokenClaimFuse",
-    "SwapDeployFuseEulerV2": "SwapDeployFuseEulerV2",
-    "SwapRegistryFuseEulerV2": "SwapRegistryFuseEulerV2",
-    "SwapReconfigureFuseEulerV2": "SwapReconfigureFuseEulerV2",
-    "UniversalTokenSwapperFuseV2": "UniversalTokenSwapperFuseV2",
-    "UniversalTokenSwapperEthFuseV2": "UniversalTokenSwapperEthFuseV2",
-    "SwapFuseUniversalTokenSwapperWithVerificationV2": "SwapFuseUniversalTokenSwapperWithVerificationV2",
-    "BalanceFuseUniversalTokenSwapperV2": "BalanceFuseUniversalTokenSwapperV2",
-    "OdosSwapperFuse": "OdosSwapperFuse",
-    "BalanceFuseOdosSwapper": "BalanceFuseOdosSwapper",
-    "VeloraSwapperFuse": "VeloraSwapperFuse",
-    "BalanceFuseVeloraSwapper": "BalanceFuseVeloraSwapper",
-    "SupplyFuseErc4626Market1": null,
-    "BalanceFuseErc4626Market1": "BalanceFuseErc4626Market1",
-    "SupplyFuseErc4626Market2": "SupplyFuseErc4626Market2",
-    "BalanceFuseErc4626Market2": "BalanceFuseErc4626Market2",
-    "FuseRequestSharesPlasmaVaultMarket1": "FuseRequestSharesPlasmaVaultMarket1",
-    "FuseRedeemFromRequestPlasmaVaultMarket1": "FuseRedeemFromRequestPlasmaVaultMarket1",
-    "ERC20BalanceFuse": null,
-    "MerklClaimFuse": "MerklClaimFuse",
-    "ExchangeRateValidatorPreHook": "ExchangeRateValidatorPreHook",
-    "FuseRequestSharesPlasmaVaultV2": "FuseRequestSharesPlasmaVaultV2",
-    "Erc4626SupplyFuse": null
-  },
   "pins": {
     "SupplyFuseErc4626Market1": {
       "address": "0xe7d3a550F0aD32cCBEF570C670b5ac004C276f24",
       "reason": "Same contract as Erc4626SupplyFuse above (ERC4626_0001); keep the version the SDK can encode",
       "checked": "2026-10-05",
-      "revisit": "ipor-fusion.py can encode minShares for the 0xC0C2\u2026E845 version"
+      "revisit": "ipor-fusion.py can encode minShares for the 0xC0C2…E845 version"
     },
     "Erc4626SupplyFuse": {
       "address": "0xe7d3a550F0aD32cCBEF570C670b5ac004C276f24",
-      "reason": "Two Erc4626SupplyFuse are active on the whitelist for ERC4626 markets; ipor-abi lists the newer 0xC0C2\u2026E845, which needs minShares and the SDK cannot encode it yet",
+      "reason": "Two Erc4626SupplyFuse are active on the whitelist for ERC4626 markets; ipor-abi lists the newer 0xC0C2…E845, which needs minShares and the SDK cannot encode it yet",
       "checked": "2026-10-05",
-      "revisit": "ipor-fusion.py can encode minShares for the 0xC0C2\u2026E845 version"
+      "revisit": "ipor-fusion.py can encode minShares for the 0xC0C2…E845 version"
     }
-  },
-  "markets": {
-    "AAVE_V3": 1,
-    "ERC20_VAULT_BALANCE": 7,
-    "EULER_V2": 11,
-    "MORPHO": 14,
-    "MORPHO_FLASH_LOAN": 19,
-    "ODOS_SWAPPER": 42,
-    "UNIVERSAL_TOKEN_SWAPPER_V2": 1202,
-    "ERC4626_0001": 100001,
-    "ERC4626_0002": 100002
   },
   "tokens": {
     "USDC": "0xaf88d065e77c8cC2239327C5EDb3A432268e5831",

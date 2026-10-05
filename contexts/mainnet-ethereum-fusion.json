@@ -1,70 +1,9 @@
 {
   "$schema": "../schema/deploy-context.schema.json",
-  "chain_id": 1,
-  "ipor_abi_deployment": "mainnet-ethereum-fusion",
-  "snapshot_block": null,
   "public_rpc": "https://ethereum-rpc.publicnode.com",
-  "contracts": {
-    "fusion_factory": "IporFusionFactoryProxy",
-    "price_oracle_middleware": "PriceOracleMiddlewareUsdWithRolesProxy",
-    "fuse_whitelist": "IporFusionFuseWhitelistProxy",
-    "middleware_owner": "IporFusionPriceOracleMiddlewareWithRolesOwner",
-    "morpho_blue": "Morpho"
-  },
-  "standard_fuses": [
-    "BurnRequestFeeFuse",
-    "BurnRequestFeeFuseV2"
-  ],
-  "price_feed_factories": {
-    "IporFusionPriceFeedUSD": "IporFusionPriceFeedUSD",
-    "DualCrossReferencePriceFeedFactory": "DualCrossReferencePriceFeedFactoryProxy",
-    "CollateralTokenOnMorphoMarketPriceFeedFactory": "CollateralTokenOnMorphoMarketPriceFeedFactoryProxy",
-    "ERC4626PriceFeedFactory": "ERC4626PriceFeedFactoryProxy"
-  },
-  "pre_hooks": {
-    "ExchangeRateValidatorPreHook": "ExchangeRateValidatorPreHook",
-    "UpdateBalancesIgnoreDustPreHook": "PreHookUpdateBalancesIgnoreDust",
-    "PauseFunctionPreHook": "PreHookPauseFunction"
-  },
-  "callback_handlers": {
-    "CallbackHandlerMorpho": "CallbackHandlerMorpho",
-    "CallbackHandlerEuler": "CallbackHandlerEuler"
-  },
-  "fuses": {
-    "MorphoSupplyFuse": "SupplyFuseMorpho",
-    "MorphoBorrowFuse": "BorrowFuseMorpho",
-    "MorphoCollateralFuse": "CollateralFuseMorpho",
-    "MorphoFlashLoanFuse": "FlashloanFuseMorpho",
-    "MorphoBalanceFuse": "BalanceFuseMorpho",
+  "aliases": {
     "MorphoFlashLoanBalanceFuse": "BalanceFuseFlashLoanMorpho",
-    "AaveV3SupplyFuse": "SupplyFuseAaveV3",
-    "AaveV3BalanceFuse": "AaveV3WithPriceOracleMiddlewareBalanceFuse",
-    "AaveV3CollateralFuse": "AaveV3CollateralFuse",
-    "AaveV3BorrowFuse": "BorrowFuseAaveV3",
-    "SwapFuseUniversalTokenSwapper": "SwapFuseUniversalTokenSwapper",
-    "UniversalTokenSwapperFuseV2": "UniversalTokenSwapperFuseV2",
-    "UniversalTokenSwapperEthFuseV2": "UniversalTokenSwapperEthFuseV2",
-    "UniversalTokenSwapperWithVerificationFuse": "SwapFuseUniversalTokenSwapperWithVerification",
-    "SwapFuseUniversalTokenSwapperWithVerificationV2": "SwapFuseUniversalTokenSwapperWithVerificationV2",
-    "UniversalTokenSwapperBalanceFuse": "BalanceFuseUniversalTokenSwapper",
-    "BalanceFuseUniversalTokenSwapperV2": "BalanceFuseUniversalTokenSwapperV2",
-    "ERC20BalanceFuse": "BalanceFuseErc20",
-    "ExchangeRateValidatorPreHook": "ExchangeRateValidatorPreHook",
-    "SparkLendSupplyFuse": "SparkLendSupplyFuse",
-    "SparkLendBorrowFuse": "SparkLendBorrowFuse",
-    "SparkLendCollateralFuse": "SparkLendCollateralFuse",
-    "SparkLendWithPriceOracleMiddlewareBalanceFuse": "SparkLendWithPriceOracleMiddlewareBalanceFuse",
-    "SupplyFuseEulerV2": "SupplyFuseEulerV2",
-    "BorrowFuseEulerV2": "BorrowFuseEulerV2",
-    "CollateralFuseEulerV2": "CollateralFuseEulerV2",
-    "ControllerFuseEulerV2": "ControllerFuseEulerV2",
-    "BalanceFuseEulerV2": "BalanceFuseEulerV2",
-    "SupplyFuseAaveV4": "SupplyFuseAaveV4",
-    "BalanceFuseAaveV4": "BalanceFuseAaveV4",
-    "Erc4626SupplyFuseFluid": null,
-    "Erc4626BalanceFuseFluid": null,
-    "SupplyFuseMorphoLiquidityInMarkets": "SupplyFuseMorphoLiquidityInMarkets",
-    "BalanceFuseMorphoLiquidityInMarkets": "BalanceFuseMorphoLiquidityInMarkets"
+    "UniversalTokenSwapperBalanceFuse": "BalanceFuseUniversalTokenSwapper"
   },
   "pins": {
     "Erc4626SupplyFuseFluid": {
@@ -83,20 +22,6 @@
       "address": "0x87870Bca3F3fD6335C3F4ce8392D69350B4fA4E2",
       "source": "Aave V3 Pool (AaveV3PoolAddressesProvider.getPool()); third-party, not in ipor-abi"
     }
-  },
-  "markets": {
-    "AAVE_V3": 1,
-    "SPARK_LEND": 44,
-    "EULER_V2": 11,
-    "ERC20_VAULT_BALANCE": 7,
-    "UNIVERSAL_TOKEN_SWAPPER": 12,
-    "MORPHO": 14,
-    "MORPHO_FLASH_LOAN": 19,
-    "ODOS_SWAPPER": 42,
-    "AAVE_V4": 49,
-    "FLUID_INSTADAPP_POOL": 5,
-    "MORPHO_LIQUIDITY_IN_MARKETS": 41,
-    "UNIVERSAL_TOKEN_SWAPPER_V2": 1202
   },
   "tokens": {
     "USDC": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",

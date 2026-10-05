@@ -32,19 +32,10 @@ ADDRESSES = {
     "AaveV3PoolAddressesProvider": PROVIDER, "Morpho": "0x00000000000000000000000000000000000000F5",
 }
 CONTEXT = {
-    "$schema": "../schema/deploy-context.schema.json", "chain_id": 8453, "ipor_abi_deployment": "mainnet-test-fusion",
-    "snapshot_block": None, "public_rpc": None,
-    "contracts": {"fusion_factory": "IporFusionFactoryProxy", "price_oracle_middleware": "PriceOracleMiddlewareUsdWithRolesProxy",
-                  "fuse_whitelist": "IporFusionFuseWhitelistProxy", "middleware_owner": "IporFusionPriceOracleMiddlewareWithRolesOwner",
-                  "morpho_blue": "Morpho"},
-    "standard_fuses": ["BurnRequestFeeFuse", "BurnRequestFeeFuseV2"],
-    "price_feed_factories": {"ERC4626PriceFeedFactory": "ERC4626PriceFeedFactoryProxy"},
-    "fuses": {"AaveV3SupplyFuse": "SupplyFuseAaveV3", "ERC20BalanceFuse": None, "PinnedFuse": None},
-    "pre_hooks": {"PauseFunctionPreHook": "PreHookPauseFunction"},
-    "callback_handlers": {"CallbackHandlerMorpho": "CallbackHandlerMorpho"},
+    "$schema": "../schema/deploy-context.schema.json", "public_rpc": None,
     "pins": {"PinnedFuse": {"address": PINNED, "reason": "two versions active; the SDK encodes this one", "checked": "2026-10-05"}},
     "external_addresses": {"aave_v3_pool": {"address": POOL, "source": "AaveV3PoolAddressesProvider.getPool()"}},
-    "markets": {}, "tokens": {"USDC": USDC},
+    "tokens": {"USDC": USDC},
 }
 
 
@@ -54,7 +45,7 @@ def ctx(tmp_path):
     (tmp_path / "ipor-abi" / "mainnet-test-fusion.json").write_text(
         json.dumps(snapshot_document("mainnet-test-fusion", ADDRESSES, "a" * 40, "2026-10-01")))
     (tmp_path / "test-fusion.json").write_text(json.dumps(CONTEXT))
-    return load_context("test-fusion", tmp_path)
+    return load_context("test-fusion", tmp_path, chain_id=8453)
 
 
 class Reader:
@@ -90,18 +81,35 @@ def test_context_resolves_every_address_through_the_snapshot(ctx):
 
 
 def test_fuse_lookup_order_is_whitelist_override_then_pin_then_ipor_abi(ctx):
-    assert ctx.fuse("AaveV3SupplyFuse").lower() == SUPPLY.lower()
+    assert ctx.fuse("SupplyFuseAaveV3").lower() == SUPPLY.lower()   # an ipor-abi key
     assert ctx.fuse("PinnedFuse").lower() == PINNED.lower()
     with pytest.raises(KeyError, match="not resolved on the FuseWhitelist"):
-        ctx.fuse("ERC20BalanceFuse")             # no ipor-abi entry: only the whitelist can resolve it
+        ctx.fuse("AaveV3SupplyFuse")             # a whitelist type name: only the resolver can map it
     ctx.set_fuse_override("AaveV3SupplyFuse", PINNED)
     assert ctx.fuse("AaveV3SupplyFuse").lower() == PINNED.lower()
 
 
 def test_a_key_missing_from_the_snapshot_names_the_fix(ctx):
-    ctx.raw["callback_handlers"]["CallbackHandlerEuler"] = "CallbackHandlerEulerV9"
     with pytest.raises(KeyError, match="make ipor-abi"):
-        ctx.callback_handler("CallbackHandlerEuler")
+        ctx.callback_handler("CallbackHandlerEulerV9")
+
+
+def test_no_overrides_file_is_needed(tmp_path):
+    (tmp_path / "ipor-abi").mkdir()
+    (tmp_path / "ipor-abi" / "mainnet-bare-fusion.json").write_text(
+        json.dumps(snapshot_document("mainnet-bare-fusion", ADDRESSES, "a" * 40, "2026-10-01")))
+    ctx = load_context("bare-fusion", tmp_path, chain_id=1)
+    assert ctx.raw == {} and ctx.chain_id == 1 and ctx.fusion_factory.lower() == FACTORY.lower()
+    assert ctx.pre_hook("PauseFunctionPreHook").lower() == HOOK.lower()      # legacy name, built-in alias
+    assert ctx.pre_hook("PreHookPauseFunction").lower() == HOOK.lower()      # the ipor-abi key itself
+    assert ctx.public_rpc is None and ctx.pins() == {}
+
+
+def test_an_alias_and_a_contract_override_win_over_the_defaults(ctx):
+    ctx.raw["aliases"] = {"MySupply": "SupplyFuseAaveV3"}
+    ctx.raw["contracts"] = {"fusion_factory": "PreHookPauseFunction"}
+    assert ctx.fuse("MySupply").lower() == SUPPLY.lower()
+    assert ctx.fusion_factory.lower() == HOOK.lower()
 
 
 def test_a_clean_chain_passes(ctx):
@@ -118,7 +126,7 @@ def test_wrong_chain_and_root_mismatch_fail(ctx):
 def test_missing_code_fails_for_handlers_hooks_factories_and_externals(ctx):
     rows = address_rows(ctx, Reader(nocode=[HANDLER, HOOK, FEEDF, POOL]), today=dt.date(2026, 10, 5))
     fails = {(r.category, r.name) for r in rows if r.verdict == FAIL}
-    assert {("callback_handler", "CallbackHandlerMorpho"), ("pre_hook", "PauseFunctionPreHook"),
+    assert {("callback_handler", "CallbackHandlerMorpho"), ("pre_hook", "PreHookPauseFunction"),
             ("price_feed_factory", "ERC4626PriceFeedFactory"), ("external", "aave_v3_pool")} <= fails
 
 
@@ -151,19 +159,19 @@ def test_snapshot_diff_and_reverse_lookup(tmp_path):
 
 
 @pytest.mark.parametrize("path", sorted(p for p in CONTEXTS_DIR.glob("*.json")), ids=lambda p: p.stem)
-def test_shipped_contexts_carry_no_ipor_contract_addresses_and_resolve_offline(path):
+def test_shipped_overrides_validate_and_resolve_offline(path):
     schema = json.loads((CONTEXTS_DIR.parent / "schema" / "deploy-context.schema.json").read_text())
     raw = json.loads(path.read_text())
     jsonschema.validate(raw, schema)
     ctx = load_context(path.stem)
-    for ref in raw["contracts"]:
+    for ref in ctx.contract_refs():
         assert ctx.resolve_address(ref)
-    for name in raw.get("callback_handlers", {}):
-        assert ctx.callback_handler(name)
-    for name in raw.get("pre_hooks", {}):
-        assert ctx.pre_hook(name)
-    for name in raw.get("price_feed_factories", {}):
-        assert ctx.price_feed_factory(name)
-    assert ctx.standard_fuses()
-    for name, key in raw["fuses"].items():
-        assert key is None or ctx.snapshot.get(key), f"{path.stem}: fuses.{name} -> missing ipor-abi key {key}"
+    assert ctx.chain_id and ctx.standard_fuses()
+    for name in raw.get("tokens", {}):
+        assert ctx.token(name)
+    keys = ctx.snapshot.addresses
+    for k in keys:
+        if k.startswith("CallbackHandler"):
+            assert ctx.callback_handler(k)
+        if k.endswith("PriceFeedFactoryProxy"):
+            assert ctx.price_feed_factory(k[:-len("Proxy")])

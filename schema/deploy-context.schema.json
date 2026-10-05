@@ -1,48 +1,35 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "Per-chain deploy context",
-  "description": "Names IPOR contracts by their ipor-abi key; addresses come from the vendored snapshot contexts/ipor-abi/<ipor_abi_deployment>.json (tools/refresh_ipor_abi.py) and fuses from the on-chain FuseWhitelist. A literal address appears only in pins (with a reason), external_addresses (third-party, with a source) and tokens.",
+  "title": "Per-chain context overrides",
+  "description": "Optional. A strategy's chain.context selects the vendored ipor-abi snapshot contexts/ipor-abi/mainnet-<context>.json, which supplies every IPOR contract address (deploy/context.py). This file holds only what cannot be derived from ipor-abi or the FuseWhitelist.",
   "type": "object",
-  "required": ["chain_id", "ipor_abi_deployment", "contracts", "fuses"],
   "additionalProperties": false,
   "$defs": {
     "address": {"type": "string", "pattern": "^0x[a-fA-F0-9]{40}$"},
-    "iporAbiKey": {"type": "string", "pattern": "^[A-Za-z][A-Za-z0-9_]*$"},
-    "keyMap": {"type": "object", "additionalProperties": {"$ref": "#/$defs/iporAbiKey"}}
+    "iporAbiKey": {"type": "string", "pattern": "^[A-Za-z][A-Za-z0-9_]*$"}
   },
   "properties": {
     "$schema": {"type": "string"},
-    "chain_id": {"type": "integer"},
-    "ipor_abi_deployment": {
-      "description": "Directory under ipor-abi mainnet/ whose addresses.json is vendored as contexts/ipor-abi/<name>.json.",
-      "type": "string"
-    },
-    "snapshot_block": {"type": ["integer", "null"]},
+    "chain_id": {"description": "Only for tools run without a strategy, when the context name is not in deploy/context.py CHAIN_IDS.", "type": "integer"},
+    "ipor_abi_deployment": {"description": "Only when the ipor-abi folder is not mainnet-<context name>.", "type": "string"},
     "public_rpc": {
       "description": "Read-only public endpoint for dry-runs when RPC_URL is unset; never used for --broadcast.",
       "type": ["string", "null"]
     },
     "contracts": {
-      "description": "Root contracts by ipor-abi key. fusion_factory, price_oracle_middleware and fuse_whitelist are required; middleware_owner is used for fork impersonation only; morpho_blue and similar venue contracts may be named here when ipor-abi lists them.",
+      "description": "Override a root contract's ipor-abi key (fusion_factory, price_oracle_middleware, fuse_whitelist, middleware_owner, morpho_blue) when this chain differs from the defaults.",
       "type": "object",
-      "required": ["fusion_factory", "price_oracle_middleware", "fuse_whitelist"],
       "additionalProperties": {"$ref": "#/$defs/iporAbiKey"}
     },
     "standard_fuses": {
-      "description": "ipor-abi keys of the fuses the FusionFactory injects into every vault (e.g. BurnRequestFeeFuse), oldest first. Never declared in a strategy JSON; the verifier treats them as expected.",
+      "description": "Override the factory-injected fuses (ipor-abi keys, oldest first) when this chain differs from BurnRequestFeeFuse, BurnRequestFeeFuseV2.",
       "type": "array",
       "items": {"$ref": "#/$defs/iporAbiKey"}
     },
-    "price_feed_factories": {"$ref": "#/$defs/keyMap"},
-    "fuses": {
-      "description": "Fuse name used in strategies -> ipor-abi key, or null when ipor-abi has no entry and the name is a FuseWhitelist type name. The whitelist decides the address; ipor-abi is the fallback and the cross-check.",
+    "aliases": {
+      "description": "A name strategies use -> the ipor-abi key it means, when they differ on this chain.",
       "type": "object",
-      "additionalProperties": {"oneOf": [{"$ref": "#/$defs/iporAbiKey"}, {"type": "null"}]}
-    },
-    "pre_hooks": {"$ref": "#/$defs/keyMap"},
-    "callback_handlers": {
-      "description": "Callback handler name -> ipor-abi key (e.g. CallbackHandlerMorpho).",
-      "$ref": "#/$defs/keyMap"
+      "additionalProperties": {"$ref": "#/$defs/iporAbiKey"}
     },
     "pins": {
       "description": "A fuse or pre-hook pinned to one address over the registries. Re-validated on every run: a pinned fuse must still be active on the FuseWhitelist.",
@@ -70,12 +57,12 @@
       }
     },
     "markets": {
-      "description": "Market name -> id, for ids the SDK's IporFusionMarkets does not know.",
+      "description": "Market name -> id, only for ids the SDK's IporFusionMarkets does not know.",
       "type": "object",
       "additionalProperties": {"type": "integer"}
     },
     "tokens": {
-      "description": "Token symbol -> address (third-party ERC20s); the address report checks symbol() on-chain.",
+      "description": "Token symbol -> address (third-party ERC20s) for names a strategy uses; the address report checks symbol() on-chain.",
       "type": "object",
       "additionalProperties": {"$ref": "#/$defs/address"}
     }

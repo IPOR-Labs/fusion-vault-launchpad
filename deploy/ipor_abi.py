@@ -35,9 +35,10 @@ class Snapshot:
     source: dict = field(default_factory=dict)   # repository, path, commit, fetched
 
     def get(self, key: str):
-        """Checksum address for an ipor-abi key, None when the key is absent or not an address."""
+        """Checksum address for an ipor-abi key, None when the key is absent, not an address or the
+        zero address (ipor-abi sometimes lists a contract that is not deployed on a chain as 0x0)."""
         val = self.addresses.get(key)
-        return Web3.to_checksum_address(val) if is_address(val) else None
+        return Web3.to_checksum_address(val) if is_address(val) and int(val, 16) != 0 else None
 
     def require(self, key: str, what: str = "") -> str:
         addr = self.get(key)
@@ -49,7 +50,7 @@ class Snapshot:
     def keys_for(self, address: str) -> list[str]:
         """Every ipor-abi key that names this address (reverse lookup for reports)."""
         a = address.lower()
-        return sorted(k for k, v in self.addresses.items() if is_address(v) and v.lower() == a)
+        return sorted(k for k, v in self.addresses.items() if is_address(v) and v.lower() == a and int(a, 16) != 0)
 
     @property
     def commit(self) -> str:

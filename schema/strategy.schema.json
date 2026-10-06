@@ -194,6 +194,10 @@
                   "null"
                 ],
                 "minimum": 0
+              },
+              "required": {
+                "type": "boolean",
+                "description": "true: the grant cannot be skipped on the signing page (OWNER, ATOMIST and FUSE_MANAGER never can)"
               }
             }
           }
@@ -368,6 +372,10 @@
               "object",
               "null"
             ]
+          },
+          "allow_price_outside_sanity": {
+            "type": "boolean",
+            "description": "Opt out of the 1e-6..1e7 USD price sanity check for this asset (only for a genuinely tiny or huge price)."
           }
         }
       }

@@ -10,14 +10,18 @@ from __future__ import annotations
 from ipor_fusion.core.access import AccessManager
 from web3 import Web3
 
+from deploy.browser_signer import SkipRequested
 from deploy.role_helpers import has_role_raw, wait_for_member
+from deploy.role_plan import grant_is_deferred, grant_is_optional
 from deploy.roles import resolve_role_id
 
 NAME = "11_roles"
 
 
 def run(cfg, deploy_ctx, session, instance, state, broadcast):
-    if state.has_step(NAME):
+    # --assign-alpha: a later run that grants only the alpha roles, once the alpha exists
+    assign_alpha = bool(getattr(session, "options", {}).get("assign_alpha"))
+    if state.has_step(NAME) and not assign_alpha:
         print(f"[{NAME}] already done — skipping")
         return
     access = AccessManager(session.ctx, instance["access_manager"])
@@ -26,10 +30,15 @@ def run(cfg, deploy_ctx, session, instance, state, broadcast):
     default_delay = int(cfg.raw["roles"].get("execution_delay_seconds", 0))
     tx_hashes = []
     skipped_existing = 0
+    skipped_by_operator = []
     for grant in cfg.raw["roles"]["grants"]:
         role_name = grant["role"]
         if role_name == "WHITELIST_ROLE":
             # covered by s10; skip here unless extra grants beyond initial_accounts
+            continue
+        if grant_is_deferred(grant) != assign_alpha:
+            if not assign_alpha:
+                print(f"[{NAME}] {role_name} -> {grant['account']} deferred: assign it with --assign-alpha once the alpha is ready")
             continue
         role_id = resolve_role_id(role_name)
         addr = Web3.to_checksum_address(grant["account"])
@@ -39,6 +48,7 @@ def run(cfg, deploy_ctx, session, instance, state, broadcast):
             NAME, action="grantRole", key=f"{role_name}->{addr}",
             target=am_address, function="grantRole(uint64,address,uint32)",
             args={"role": role_name, "role_id": role_id, "account": str(addr), "delay": delay},
+            optional=grant_is_optional(grant),
         )
         if has_role_raw(web3, am_address, role_id, addr):
             skipped_existing += 1
@@ -49,7 +59,14 @@ def run(cfg, deploy_ctx, session, instance, state, broadcast):
         print(f"[{NAME}] grant {role_name}({role_id}) -> {addr} delay={delay}")
         if not broadcast:
             continue
-        receipt = access.grant_role(role_id, addr, delay).send()
+        try:
+            receipt = access.grant_role(role_id, addr, delay).send()
+        except SkipRequested:
+            # only optional grants can be skipped (the signing page refuses the rest)
+            rec.skipped, rec.note = True, "skipped by the operator on the signing page"
+            skipped_by_operator.append(f"{role_name}->{addr}")
+            print(f"[{NAME}]   {role_name} -> {addr} skipped by the operator")
+            continue
         tx_hash = receipt["transactionHash"].hex()
         tx_hashes.append(tx_hash)
         rec.executed = True
@@ -63,4 +80,4 @@ def run(cfg, deploy_ctx, session, instance, state, broadcast):
         # every granted account recorded so hardening can probe role holders
         # (hasRole per candidate) without needing an eth_getLogs-capable RPC
         accounts = sorted({Web3.to_checksum_address(g["account"]) for g in cfg.raw["roles"]["grants"]})
-        state.record(NAME, tx_hashes=tx_hashes, notes={"accounts": accounts})
+        state.record(NAME, tx_hashes=tx_hashes, notes={"accounts": accounts, "skipped_by_operator": skipped_by_operator})

@@ -58,12 +58,17 @@ def _rpc(w3, method, params):
     return res.get("result")
 
 
-def _impersonated_send(w3, sender: str, to: str, data: bytes) -> dict:
+def _impersonated_send(w3, sender: str, to: str, data: bytes, value: int = 0) -> dict:
     """Send `data` to `to` from an impersonated `sender` on anvil/hardhat."""
     _rpc(w3, "anvil_impersonateAccount", [sender])
     _rpc(w3, "anvil_setBalance", [sender, hex(10**19)])
     try:
-        tx_hash = w3.eth.send_transaction({"from": sender, "to": to, "data": "0x" + data.hex(), "gas": 1_500_000})
+        tx = {"from": sender, "to": to, "data": "0x" + data.hex(), "value": int(value)}
+        try:   # estimate first: a pool deployment needs ~4.5M, a plain call a few 10k; a would-revert call surfaces here
+            tx["gas"] = min(int(w3.eth.estimate_gas(tx) * 1.3) + 50_000, 30_000_000)
+        except Exception:
+            tx["gas"] = 3_000_000
+        tx_hash = w3.eth.send_transaction(tx)
         receipt = w3.eth.wait_for_transaction_receipt(tx_hash)
     finally:
         _rpc(w3, "anvil_stopImpersonatingAccount", [sender])
@@ -127,6 +132,32 @@ class RehearsalEnv:
     def block_timestamp(self) -> int:
         return int(self.w3.eth.get_block("latest")["timestamp"])
 
+    # --- fork-only helpers for `prepare(env)` (third-party state the strategy depends on) ---
+    def impersonated_send(self, sender: str, to: str, data: bytes, value: int = 0) -> dict:
+        """Send `data` to `to` as `sender` on the fork (anvil impersonation, balance topped up)."""
+        return _impersonated_send(self.w3, Web3.to_checksum_address(sender), Web3.to_checksum_address(to), data, value)
+
+    def impersonated_call(self, sender: str, to: str, signature: str, args_types: list[str], args: list, value: int = 0) -> dict:
+        from eth_abi import encode as abi_encode
+        data = function_signature_to_4byte_selector(signature) + abi_encode(args_types, args)
+        return self.impersonated_send(sender, to, data, value)
+
+    def deploy_contract(self, sender: str, bytecode: str | bytes, constructor_args: bytes = b"") -> str:
+        """Deploy raw bytecode from an impersonated `sender`; returns the new contract address."""
+        code = bytes.fromhex(bytecode[2:]) if isinstance(bytecode, str) else bytes(bytecode)
+        sender = Web3.to_checksum_address(sender)
+        _rpc(self.w3, "anvil_impersonateAccount", [sender])
+        _rpc(self.w3, "anvil_setBalance", [sender, hex(10**19)])
+        tx_hash = self.w3.eth.send_transaction({"from": sender, "data": code + constructor_args, "gas": 3_000_000})
+        rcpt = self.w3.eth.wait_for_transaction_receipt(tx_hash)
+        _rpc(self.w3, "anvil_stopImpersonatingAccount", [sender])
+        if rcpt["status"] != 1 or not rcpt.get("contractAddress"):
+            raise RehearsalError(f"contract deployment from {sender} failed: {tx_hash.hex()}")
+        return Web3.to_checksum_address(rcpt["contractAddress"])
+
+    def advance_time(self, seconds: int) -> None:
+        _advance_time(self.w3, seconds)
+
 
 # --- the stage -------------------------------------------------------------------------
 
@@ -162,6 +193,18 @@ def rehearse(cfg, deploy_ctx, session, instance, state_path: Path) -> dict:
             granted.append(role)
     _ok(f"deployer {deployer} holds rehearsal roles (granted now: {granted or 'none'})")
 
+    # 1b. fork preparation: third-party state the strategy depends on but does not own (a market
+    #     parameter the venue's governor has not set yet, a pool that does not exist, liquidity).
+    #     A rehearsal script may define prepare(env) -> list[str]; it runs once, before funding,
+    #     only on the fork, and its lines go into the report so nobody mistakes them for chain state.
+    mod = _load_script(r["script"]) if r.get("script") else None
+    if mod is not None and hasattr(mod, "prepare"):
+        prepared = list(mod.prepare(env) or [])
+        report["observations"]["prepare"] = prepared
+        for line in prepared:
+            _warn(f"fork preparation: {line}")
+        _ok(f"prepare(env) applied {len(prepared)} fork-only change(s); none of them exist on the live chain")
+
     # 2. fund the deployer from a token holder (impersonated on the fork)
     holder_ref = r.get("token_holder")
     if not holder_ref:
@@ -187,8 +230,7 @@ def rehearse(cfg, deploy_ctx, session, instance, state_path: Path) -> dict:
 
     # 4. execute the strategy batches from the script, checking the accounting after each
     batches: list[RehearsalBatch] = []
-    if r.get("script"):
-        mod = _load_script(r["script"])
+    if mod is not None:
         batches = list(mod.build_batches(env, "open"))
     else:
         _warn("no rehearsal.script: no fuse is executed; only deposit and withdrawal are rehearsed")
@@ -218,7 +260,7 @@ def rehearse(cfg, deploy_ctx, session, instance, state_path: Path) -> dict:
         nav_prev = nav_fresh
 
     # 5. unwind (optional; a leveraged vault must free the underlying before it can pay a withdrawal)
-    if r.get("script") and hasattr(mod, "build_batches"):
+    if mod is not None:
         unwind = list(mod.build_batches(env, "unwind"))
         for b in unwind:
             vault.execute(b.actions).send()

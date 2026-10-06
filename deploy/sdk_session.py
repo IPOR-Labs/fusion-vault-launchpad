@@ -15,7 +15,9 @@ A `.env` file at the repo root is loaded automatically (via python-dotenv).
 from __future__ import annotations
 
 import os
+import secrets
 import sys
+from typing import Any
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -38,6 +40,7 @@ from deploy.context import DeployContext
 from deploy.guards import is_local_node
 from deploy.plan import RunRecorder
 from deploy.state import hash_config
+from deploy.chain_guards import target_problem
 
 
 def _install_monotonic_nonce(ctx) -> None:
@@ -69,6 +72,49 @@ def _install_monotonic_nonce(ctx) -> None:
     setattr(ctx, attr, patched_build)
 
 
+def _install_target_guard(ctx) -> None:
+    """Refuse any transaction whose target has no code on the connected chain, for every signer
+    (key, impersonate, browser): all of them build through the SDK's transaction builder. Every
+    pipeline transaction calls a contract, so an empty target means the run is working from
+    addresses that were never deployed (see deploy/chain_guards.py)."""
+    attr = "build_transaction" if hasattr(ctx, "build_transaction") else "_build_transaction"
+    orig_build = getattr(ctx, attr)
+
+    def guarded_build(to, data):
+        problem = target_problem(to, bytes(ctx.web3.eth.get_code(to)) if to else b"")
+        if problem:
+            raise RuntimeError(problem)
+        return orig_build(to, data)
+
+    setattr(ctx, attr, guarded_build)
+
+
+def _plant_fork_marker(ctx) -> dict:
+    """Fund a fresh random address with a random balance on the fork only. The signing page reads
+    that balance through the wallet's own RPC: a wallet on the live chain (same chain id as the
+    fork) sees zero and is refused, so a fork run can never be signed onto the live chain."""
+    addr = Web3.to_checksum_address("0x" + secrets.token_hex(20))
+    balance = hex(10**15 + secrets.randbelow(10**15))
+    ctx.web3.provider.make_request("anvil_setBalance", [addr, balance])
+    return {"address": addr, "balance": balance, "chain": int(ctx.web3.eth.chain_id)}
+
+
+def _install_impersonated_send(ctx) -> None:
+    """Route `send` through the fork's unlocked account (anvil_impersonateAccount)."""
+    w3 = ctx.web3
+    sender = ctx.signer
+    w3.provider.make_request("anvil_impersonateAccount", [sender])
+    w3.provider.make_request("anvil_setBalance", [sender, hex(10**20)])
+
+    def impersonated_send(to, data):
+        built = ctx.build_transaction(to, data)
+        tx_hash = w3.eth.send_transaction({"from": sender, "to": to, "data": built["data"], "gas": built["gas"]})
+        receipt = w3.eth.wait_for_transaction_receipt(tx_hash)
+        return ctx._handle_receipt(tx_hash, receipt)
+
+    ctx.send = impersonated_send
+
+
 @dataclass(slots=True)
 class Session:
     ctx: Web3Context
@@ -80,6 +126,8 @@ class Session:
     recorder: RunRecorder
     client_version: str
     is_local_node: bool
+    browser_signer: Any | None = None
+    options: dict | None = None      # run options steps may read, e.g. {"assign_alpha": True}
 
 
 def resolve_rpc_url(context: DeployContext, broadcast: bool) -> tuple[str, str]:
@@ -98,17 +146,31 @@ def resolve_rpc_url(context: DeployContext, broadcast: bool) -> tuple[str, str]:
     raise RuntimeError(f"RPC_URL not set and context '{context.name}' has no public_rpc.")
 
 
-def open_session(cfg: StrategyConfig, context: DeployContext, broadcast: bool) -> Session:
+def open_session(cfg: StrategyConfig, context: DeployContext, broadcast: bool,
+                 signer_mode: str = "key", signer_port: int = 8789, signer_meta: dict | None = None,
+                 browser_signer: Any | None = None) -> Session:
+    """`browser_signer`: an already running signing page to reuse (one page for a campaign
+    of vaults); it is pointed at this strategy's chain and reconnects the wallet if needed."""
     rpc, rpc_source = resolve_rpc_url(context, broadcast)
     pk = os.environ.get("DEPLOYER_PRIVATE_KEY") or None
-    if broadcast and not pk:
+    browser = signer_mode == "browser"
+    impersonate = signer_mode == "impersonate"
+    if browser or impersonate:
+        pk = None   # a wallet (or the fork) signs; a key in .env is ignored on purpose
+    if broadcast and not pk and not (browser or impersonate):
         raise RuntimeError(
             "DEPLOYER_PRIVATE_KEY not set — required for --broadcast. Simulation (dry-run) works "
             "without it; creating a vault does not. Ask the human operator to add the key to .env "
             "(see .env.example). Never ask them to paste it into the chat."
         )
-    if not broadcast and not pk:
-        print("INFO: DEPLOYER_PRIVATE_KEY not set — dry-run only (no signer).", file=sys.stderr)
+    simulated_signer = None
+    if not broadcast and not pk and not (browser or impersonate):
+        # A key-less dry-run still needs a plausible sender: the factory refuses a zero
+        # owner (Mode A passes the deployer as the clone owner) and previews depend on
+        # `from`. DEPLOYER_ADDRESS wins, then the strategy's initial_owner_override.
+        simulated_signer = os.environ.get("DEPLOYER_ADDRESS") or cfg.raw["vault"].get("initial_owner_override")
+        print("INFO: DEPLOYER_PRIVATE_KEY not set — dry-run only (no signer)"
+              + (f"; simulating sender {simulated_signer}" if simulated_signer else "") + ".", file=sys.stderr)
 
     gas_mult = float(cfg.raw["execution"].get("gas_multiplier", 1.25))
     ctx = Web3Context.from_url(rpc, private_key=pk, gas_multiplier=gas_mult)
@@ -118,12 +180,47 @@ def open_session(cfg: StrategyConfig, context: DeployContext, broadcast: bool) -
 
     if broadcast and pk:
         _install_monotonic_nonce(ctx)
+    if broadcast:
+        _install_target_guard(ctx)
 
     try:
         client_version = str(ctx.web3.client_version)
     except Exception:
         client_version = ""
     local = is_local_node(client_version)
+
+    if impersonate:
+        # Rehearse as the production deployer: the fork signs for DEPLOYER_ADDRESS, so roles,
+        # whitelist entries and the factory's per-client fee package match the live run.
+        if not local:
+            raise RuntimeError("--signer impersonate works only against a local fork (anvil/hardhat)")
+        addr = os.environ.get("DEPLOYER_ADDRESS")
+        if not addr:
+            raise RuntimeError("--signer impersonate needs DEPLOYER_ADDRESS (the account the fork will impersonate)")
+        ctx._signer = Web3.to_checksum_address(addr)
+        _install_impersonated_send(ctx)
+
+    # one marker per fork: a vault set reuses it for every stage on the same chain and plants a
+    # new one when a stage moves to another chain's fork (the wallet then reads it on that chain)
+    marker = None
+    if browser and local:
+        prev = browser_signer.queue.fork_marker if browser_signer is not None else None
+        chain = int(ctx.web3.eth.chain_id)
+        marker = prev if prev and prev.get("chain") == chain else _plant_fork_marker(ctx)
+    if browser and browser_signer is not None:
+        browser_signer.meta.update({"is_local_fork": local, "fork_rpc": rpc if local else None, "fork_marker": marker})
+        browser_signer.queue.fork_marker = marker
+        browser_signer.queue.retarget(int(ctx.web3.eth.chain_id), os.environ.get("DEPLOYER_ADDRESS") or None)
+        browser_signer.wait_for_wallet()
+    elif browser:
+        from deploy.browser_signer import BrowserSigner, SigningQueue
+        expected = os.environ.get("DEPLOYER_ADDRESS") or None
+        # a fork's URL is local and harmless to show; a live RPC may carry an API key, so it never reaches the page
+        meta = {**(signer_meta or {}), "is_local_fork": local, "fork_rpc": rpc if local else None, "fork_marker": marker}
+        browser_signer = BrowserSigner(SigningQueue(int(ctx.web3.eth.chain_id), expected), port=signer_port, meta=meta)
+        browser_signer.queue.fork_marker = marker
+        browser_signer.start()
+        browser_signer.wait_for_wallet()
 
     actual_chain = int(ctx.web3.eth.chain_id)
     allowlist = cfg.raw["execution"].get("fork_chain_id_allowlist", [])
@@ -141,7 +238,9 @@ def open_session(cfg: StrategyConfig, context: DeployContext, broadcast: bool) -
         print(f"WARNING: chain_id mismatch (RPC={actual_chain}, cfg={cfg.chain_id})")
 
     factory = FusionFactory(ctx, context.fusion_factory)
-    signer = ctx.signer or Web3.to_checksum_address("0x" + "00" * 20)
+    if browser_signer:
+        ctx._signer = Web3.to_checksum_address(browser_signer.queue.account)
+    signer = ctx.signer or Web3.to_checksum_address(simulated_signer or "0x" + "00" * 20)
     print(f"INFO: RPC source={rpc_source} chain_id={actual_chain} node={'local fork' if local else 'live'} "
           f"signer={signer}", file=sys.stderr)
     recorder = RunRecorder(
@@ -163,5 +262,6 @@ def open_session(cfg: StrategyConfig, context: DeployContext, broadcast: bool) -
         broadcast=broadcast,
         recorder=recorder,
         client_version=client_version,
+        browser_signer=browser_signer,
         is_local_node=local,
     )

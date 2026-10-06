@@ -53,7 +53,8 @@
     "ERC20BalanceFuse": "0x1a047137F2D4daE60853f87Dc13ae92C0dB2c123",
     "MerklClaimFuse": "0x7db8a7A58fA64ABEfe85D90317C5F9EeeE8b7591",
     "ExchangeRateValidatorPreHook": "0x923a6A7f0AEBbf2381d88ad5402AD0312b30AaD0",
-    "FuseRequestSharesPlasmaVaultV2": "0x023f0766Ec493fe5cC6634615df997F1396b6150"
+    "FuseRequestSharesPlasmaVaultV2": "0x023f0766Ec493fe5cC6634615df997F1396b6150",
+    "Erc4626SupplyFuse": "0xe7d3a550F0aD32cCBEF570C670b5ac004C276f24"
   },
   "pre_hooks": {
     "ExchangeRateValidatorPreHook": "0x923a6A7f0AEBbf2381d88ad5402AD0312b30AaD0",

@@ -64,3 +64,5 @@ A strategy that declares functional fuses needs `rehearsals/<name>.py` exposing 
 ## Reporting a problem
 
 Open an issue with: the command, the strategy JSON (redact addresses if needed), the chain and RPC type (public, private, fork), the full output, and the `.plan.json` / `.run.json` if a deploy was involved. For anything that looks like a security issue in the Fusion contracts themselves, use the disclosure channels listed at [docs.ipor.io](https://docs.ipor.io) rather than a public issue.
+
+A script may also define `prepare(env) -> list[str]` for fork-only third-party state (see `docs/04-deploy.md` §4a); every line it returns is reported as a fork assumption. Keep it idempotent: a re-run against the same fork must not double-seed.

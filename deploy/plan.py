@@ -52,6 +52,7 @@ class Action:
     note: str | None = None
     tx_hash: str | None = None
     gas_used: int | None = None
+    optional: bool = False     # the operator may skip it on the signing page (e.g. a non-core role grant)
 
     def identity(self) -> tuple[str, str, str, str]:
         """Config-determined logical identity — excludes result fields."""

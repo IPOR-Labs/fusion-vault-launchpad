@@ -1,9 +1,9 @@
 """Step 01b: grant configuration roles to the deployer (initial_owner).
 
-After `clone`, only OWNER_ROLE is set on initial_owner. To run all subsequent
-config steps (add_fuses, grant_substrates, fees, pre-hooks, etc.) the signer
-needs the corresponding role. We grant the deployer every role from
-`cfg.roles.grants` so the same signer can carry out the full pipeline.
+After `clone`, only OWNER_ROLE is set on initial_owner. The deployer then gets
+the base roles, ATOMIST and FUSE_MANAGER, plus a role only where a configured
+step needs it (`deploy.role_plan.bootstrap_roles`): price feeds, the instant
+withdrawal order, pre-hooks. The appointed holders get their roles in s11.
 
 Idempotency and the RPC propagation race are handled via `role_helpers`:
 hasRole reads bypass the SDK wrapper, and after each grant we poll until the
@@ -19,6 +19,7 @@ from ipor_fusion.core.access import AccessManager
 from web3 import Web3
 
 from deploy.role_helpers import has_role_raw, wait_for_member
+from deploy.role_plan import bootstrap_roles
 from deploy.roles import resolve_role_id
 
 NAME = "01b_bootstrap_roles"
@@ -40,8 +41,7 @@ def run(cfg, deploy_ctx, session, instance, state, broadcast):
     failed = []
     tx_hashes = []
     seen = set()
-    for grant in cfg.raw["roles"]["grants"]:
-        role_name = grant["role"]
+    for role_name, why in bootstrap_roles(cfg.raw):
         role_id = resolve_role_id(role_name)
         if role_id in seen:
             continue
@@ -53,7 +53,7 @@ def run(cfg, deploy_ctx, session, instance, state, broadcast):
             NAME, action="grantRole(bootstrap)", key=role_name,
             target=am_address, function="grantRole(uint64,address,uint32)",
             args={"role": role_name, "role_id": role_id, "delay": 0},
-            note=f"grantee = deployer {deployer}",
+            note=f"grantee = deployer {deployer}; needed for {why}",
         )
         if has_role_raw(web3, am_address, role_id, deployer):
             skipped += 1

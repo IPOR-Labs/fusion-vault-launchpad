@@ -1,0 +1,797 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#090E14">
+<title>Vault Signing · Fusion</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%20198.75%20198.75%22%3E%3Crect%20width%3D%22198.75%22%20height%3D%22198.75%22%20rx%3D%2240%22%20fill%3D%22%238429FF%22/%3E%3Cpath%20fill%3D%22%23fff%22%20transform%3D%22translate%2829.8%2029.8%29%20scale%28.7%29%22%20d%3D%22M198.75%2C99.37c0-20.6-21.02-38.09-52.5-46.87C137.46%2C21.02%2C119.97%2C0%2C99.37%2C0s-38.09%2C21.02-46.87%2C52.5C21.02%2C61.29%2C0%2C78.78%2C0%2C99.37s21.02%2C38.09%2C52.5%2C46.88c8.79%2C31.48%2C26.28%2C52.5%2C46.87%2C52.5s38.09-21.02%2C46.88-52.5c31.48-8.79%2C52.5-26.28%2C52.5-46.88M73.17%2C37.18c7.32-14.72%2C16.87-23.16%2C26.17-23.16s18.88%2C8.44%2C26.17%2C23.16c1.88%2C3.83%2C3.52%2C7.77%2C4.91%2C11.81-20.6-3.42-41.63-3.42-62.23%2C0%2C1.39-4.04%2C3.07-7.93%2C4.95-11.76l.03-.05ZM138.3%2C99.42c.01%2C9.02-.73%2C17.98-2.12%2C26.89l-63.75-63.79c8.91-1.39%2C17.92-2.08%2C26.94-2.06%2C11.86-.04%2C23.69%2C1.17%2C35.3%2C3.62%2C2.45%2C11.61%2C3.66%2C23.34%2C3.62%2C35.2M60.45%2C99.31c-.01-9.02.69-17.96%2C2.07-26.88l63.79%2C63.8c-8.91%2C1.39-17.92%2C2.08-26.94%2C2.06-11.86.04-23.69-1.18-35.3-3.62-2.45-11.61-3.66-23.44-3.62-35.3v-.06ZM37.19%2C125.54c-14.72-7.32-23.16-16.87-23.16-26.17s8.45-18.88%2C23.16-26.17c3.83-1.88%2C7.77-3.52%2C11.81-4.91-3.42%2C20.6-3.42%2C41.63%2C0%2C62.23-4.04-1.39-7.92-3.06-11.75-4.95l-.06-.03ZM125.6%2C161.6c-7.32%2C14.72-16.87%2C23.16-26.17%2C23.16s-18.88-8.45-26.17-23.16c-1.88-3.83-3.52-7.77-4.91-11.81%2C10.28%2C1.72%2C20.68%2C2.58%2C31.11%2C2.56%2C10.42.02%2C20.83-.84%2C31.11-2.56-1.39%2C4.04-3.05%2C7.93-4.93%2C11.76l-.03.05ZM161.61%2C125.58c-3.83%2C1.88-7.75%2C3.56-11.79%2C4.94%2C1.73-10.28%2C2.58-20.68%2C2.56-31.11.02-10.42-.84-20.83-2.56-31.11%2C4.04%2C1.38%2C7.98%2C3.02%2C11.81%2C4.91%2C14.72%2C7.32%2C23.16%2C16.87%2C23.16%2C26.17s-8.44%2C18.88-23.16%2C26.17h-.02Z%22/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  /* Fusion app tokens (ipor-webapp src/index.css, docs/design-system/tokens.md). The app is dark-only. */
+  :root{
+    --bg:#090E14; --card:#161A20; --popover:#151A20; --hover:#22272C; --inset:#0D1117;
+    --border:#45484D; --border-muted:#2E3137; --text:#F8FAFC; --muted:#9BA3AF; --placeholder:#808080;
+    --primary:#8429FF; --primary-2:#6C00FF; --primary-soft:rgba(132,41,255,.15); --primary-line:rgba(132,41,255,.55); --primary-text:#C9A6FF;
+    --success:#50AF95; --success-soft:rgba(80,175,149,.15); --success-line:rgba(80,175,149,.55);
+    --error:#D94343; --error-soft:rgba(217,67,67,.15); --error-line:rgba(217,67,67,.55);
+    --warning:#F59E0B; --warning-soft:rgba(245,158,11,.12); --warning-line:rgba(245,158,11,.5); --blue:#3D88FF;
+    --radius-card:18px; --radius-input:10px; --pill:50px; --btn-h:43px;
+    --glow:0 0 20px rgba(132,41,255,.3),0 0 40px rgba(132,41,255,.1);
+    --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--bg);color:var(--text);font:15px/22px Poppins,system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+  a{color:var(--blue);text-decoration:none} a:hover{text-decoration:underline}
+  button{font:inherit}
+  code,.mono{font-family:var(--mono);font-size:13px}
+  .muted{color:var(--muted)} .ok{color:var(--success)} .bad{color:var(--error)} .warn{color:var(--warning)}
+  [hidden]{display:none!important}
+
+  header{position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:14px;padding:14px 28px;border-bottom:1px solid var(--border-muted);background:rgba(21,26,32,.92);backdrop-filter:blur(8px)}
+  header .logo{width:32px;height:32px;flex:none}
+  header .title{font-weight:600;font-size:16px;line-height:20px}
+  header .sub{color:var(--muted);font-size:13px;line-height:18px}
+  header .spacer{flex:1}
+  .pill{display:inline-flex;align-items:center;gap:8px;padding:0 14px;height:30px;border-radius:var(--pill);border:1px solid var(--border);font-size:13px;color:var(--muted);white-space:nowrap}
+  .pill.ok{border-color:var(--success-line);color:var(--success)} .pill.bad{border-color:var(--error-line);color:var(--error)}
+  .pill .dot{width:8px;height:8px;border-radius:50%;background:currentColor}
+  .tag{display:inline-flex;align-items:center;height:22px;padding:0 10px;border-radius:var(--pill);font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;background:var(--warning-soft);border:1px solid var(--warning-line);color:var(--warning)}
+  .activity{position:absolute;left:0;right:0;bottom:-1px;height:2px;overflow:hidden}
+  .activity i{position:absolute;top:0;left:-40%;width:40%;height:100%;background:linear-gradient(90deg,transparent,var(--primary),var(--primary-2),transparent);animation:slide 1.2s ease-in-out infinite}
+  @keyframes slide{to{left:100%}}
+
+  main{max-width:1180px;margin:0 auto;padding:20px 24px 120px}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius-card);padding:22px 24px}
+
+  /* live status: what the run is doing right now, with an elapsed timer */
+  .status{position:sticky;top:76px;z-index:15;display:flex;align-items:center;gap:12px;min-height:48px;padding:10px 18px;margin:0 0 16px;border-radius:14px;border:1px solid var(--border-muted);background:var(--card);font-size:14px;box-shadow:0 8px 24px rgba(9,14,20,.8)}
+  @media (max-width:640px){.status{position:static}}
+  .status .txt{flex:1}
+  .status .el{font-variant-numeric:tabular-nums;color:var(--muted);font-size:13px;white-space:nowrap}
+  .status .hint{display:block;color:var(--muted);font-size:12px;line-height:18px}
+  .status.you{border-color:var(--primary-line);background:linear-gradient(90deg,rgba(132,41,255,.14),transparent 70%),var(--card);box-shadow:var(--glow)}
+  .status.work{border-color:var(--border)}
+  .status.bad{border-color:var(--error-line);background:linear-gradient(var(--error-soft),var(--error-soft)),var(--card)}
+  .status.ok{border-color:var(--success-line);background:linear-gradient(var(--success-soft),var(--success-soft)),var(--card)}
+  .status .btn{height:34px;padding:0 16px;font-size:14px}
+  .dotp{display:inline-block;width:10px;height:10px;border-radius:50%;background:var(--primary);animation:beat 1.4s infinite}
+  @keyframes beat{0%{box-shadow:0 0 0 0 rgba(132,41,255,.7)}70%{box-shadow:0 0 0 10px rgba(132,41,255,0)}100%{box-shadow:0 0 0 0 rgba(132,41,255,0)}}
+
+  /* title strip */
+  .strip{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:16px;margin:2px 0 14px}
+  .strip h1{margin:0;font-size:22px;line-height:30px;font-weight:600}
+  .strip .meta{color:var(--muted);font-size:13px;margin-top:2px}
+  .counter{text-align:right}
+  .counter .big{font-size:20px;font-weight:600;line-height:26px}
+  .counter .big span{color:var(--muted);font-weight:500;font-size:14px}
+  .bar{width:220px;height:6px;border-radius:6px;background:var(--border-muted);overflow:hidden;margin:6px 0 0 auto}
+  .bar i{display:block;height:100%;background:linear-gradient(90deg,var(--primary),var(--primary-2));border-radius:6px;transition:width .4s}
+
+  /* vault map: vaults as cards, connections as lines, parents on the left */
+  .map-card{padding:14px 16px 12px;margin-bottom:16px}
+  .map-head{display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin:0 2px 10px}
+  .map-head h2{margin:0;font-size:14px;font-weight:600}
+  .map-head .muted{font-size:12px}
+  .map-wrap{overflow-x:auto;scrollbar-width:thin}
+  .map{position:relative;display:grid;grid-auto-flow:column;gap:0 108px;align-items:center;justify-content:start;min-width:min-content;padding:16px 4px 4px}
+  .map svg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:visible}
+  .col{display:flex;flex-direction:column;gap:12px;justify-content:center}
+  .vnode{position:relative;z-index:1;width:186px;text-align:left;padding:9px 12px 9px;border-radius:14px;border:1px solid var(--border);background:var(--inset);color:inherit;cursor:default}
+  .vnode.nav{cursor:pointer} .vnode.nav:hover{border-color:var(--primary-line)}
+  .vnode.done{border-color:rgba(132,41,255,.4)}
+  .vnode.current{border-color:var(--primary);box-shadow:var(--glow);background:linear-gradient(135deg,rgba(132,41,255,.12),transparent 60%),var(--inset)}
+  .vnode.failed{border-color:var(--error)}
+  .vnode.blocked{border-style:dashed;opacity:.62}
+  .vnode.sel{outline:2px solid var(--text);outline-offset:3px}
+  .vnode .top{display:flex;align-items:center;gap:8px}
+  .vnode .ord{flex:none;width:20px;height:20px;border-radius:50%;display:grid;place-items:center;font-size:11px;font-weight:600;border:1px solid var(--border);color:var(--muted)}
+  .vnode.done .ord{background:var(--primary);border-color:var(--primary);color:#fff}
+  .vnode.current .ord{background:linear-gradient(135deg,var(--primary),var(--primary-2));border-color:var(--primary);color:#fff}
+  .vnode .sym{font-weight:600;font-size:14px;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .vnode .chain{font-size:10px;color:var(--text);border:1px solid var(--border-muted);border-radius:var(--pill);padding:0 6px;line-height:15px;white-space:nowrap;margin-right:3px}
+  .vnode .nm{font-size:11.5px;line-height:16px;color:var(--muted);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .vnode .st{display:flex;justify-content:space-between;align-items:center;margin-top:7px;font-size:11.5px;color:var(--muted)}
+  .vnode .mini{height:3px;border-radius:3px;background:var(--border-muted);margin-top:6px;overflow:hidden}
+  .vnode .mini i{display:block;height:100%;background:linear-gradient(90deg,var(--primary),var(--primary-2))}
+  .here{position:absolute;top:-11px;left:12px;white-space:nowrap;height:18px;line-height:18px;padding:0 8px;border-radius:var(--pill);font-size:9.5px;font-weight:600;letter-spacing:.04em;color:#fff;background:linear-gradient(90deg,var(--primary),var(--primary-2))}
+  .elabel{position:absolute;z-index:2;transform:translate(-50%,-50%);white-space:nowrap;height:20px;line-height:18px;padding:0 8px;border-radius:var(--pill);font-size:10.5px;border:1px solid var(--border);background:var(--card);color:var(--muted);cursor:default}
+  .elabel.nav{cursor:pointer} .elabel.nav:hover{border-color:var(--primary-line);color:var(--text)}
+  .elabel.done{border-color:var(--primary-line);color:var(--primary-text)}
+  .elabel.current{border-color:var(--primary);color:#fff;background:linear-gradient(90deg,var(--primary),var(--primary-2))}
+  .elabel.blocked{border-style:dashed}
+  .elabel.failed{border-color:var(--error);color:var(--error)}
+  .elabel.sel{outline:2px solid var(--text);outline-offset:2px}
+  .legend{display:flex;flex-wrap:wrap;gap:4px 14px;margin:8px 2px 0;font-size:11px;color:var(--placeholder)}
+
+  /* content */
+  .grid{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:18px;align-items:start}
+  @media (max-width:980px){.grid{grid-template-columns:minmax(0,1fr)}}
+  .eyebrow{font-size:13px;color:var(--muted)}
+  .step-head{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-start;justify-content:space-between;margin-top:2px}
+  .step-head h2{margin:0;font-size:20px;line-height:28px;font-weight:600;overflow-wrap:anywhere}
+  .desc{color:var(--muted);margin:6px 0 18px;font-size:14px;line-height:21px;max-width:680px;overflow-wrap:anywhere}
+  .chip{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 10px;border-radius:var(--pill);font-size:12px;font-weight:600;white-space:nowrap;border:1px solid var(--border);color:var(--muted)}
+  .chip.done,.chip.signed,.chip.sent,.chip.earlier{background:var(--success-soft);border-color:var(--success-line);color:var(--success)}
+  .chip.current,.chip.waiting,.chip.confirming,.chip.preparing{background:var(--primary-soft);border-color:var(--primary-line);color:var(--primary-text)}
+  .chip.failed,.chip.rejected{background:var(--error-soft);border-color:var(--error-line);color:var(--error)}
+  .chip.warn{background:var(--warning-soft);border-color:var(--warning-line);color:var(--warning)}
+  .chip.skipped,.chip.not-needed,.chip.blocked{border-style:dashed}
+  .actions{display:flex;flex-direction:column;gap:8px}
+  .act{display:grid;grid-template-columns:28px minmax(0,1fr) auto;gap:4px 12px;align-items:start;padding:12px 14px;border:1px solid var(--border-muted);border-radius:12px;background:var(--inset)}
+  .act.now{border-color:var(--primary-line);box-shadow:var(--glow)}
+  .act .ic{grid-row:span 2;width:26px;height:26px;border-radius:50%;display:grid;place-items:center;font-size:12px;font-weight:600;color:rgba(255,255,255,.4);border:1px solid var(--border)}
+  .act.signed .ic,.act.sent .ic,.act.earlier .ic{border-color:var(--primary);background:var(--primary);color:#fff}
+  .act.waiting .ic,.act.confirming .ic,.act.preparing .ic{border-color:var(--primary);color:var(--primary-text)}
+  .act.rejected .ic{border-color:var(--error);color:var(--error)}
+  .act .fn{font-weight:500;font-size:14px;overflow-wrap:anywhere}
+  .act .fn .k{color:var(--primary-text)}
+  .act .args{grid-column:2 / 4;font-size:12px;line-height:18px;color:var(--muted);overflow-wrap:anywhere}
+  .act .args b{font-weight:500;color:#C8CDD4}
+  .act .right{text-align:right;font-size:12px;line-height:18px;white-space:nowrap}
+  .spin{display:inline-block;width:12px;height:12px;border-radius:50%;border:2px solid currentColor;border-right-color:transparent;animation:rot .8s linear infinite}
+  @keyframes rot{to{transform:rotate(360deg)}}
+  @media (prefers-reduced-motion:reduce){.spin{animation-duration:3s}.dotp{animation:none}.activity i{animation:none}}
+  .sign{border:1px solid var(--primary-line);background:linear-gradient(135deg,rgba(132,41,255,.09),transparent 55%),var(--card);box-shadow:var(--glow);border-radius:var(--radius-card);padding:20px 22px;margin:0 0 18px}
+  .sign h3{margin:2px 0 0;font-size:17px;font-weight:600}
+  .kv{display:grid;grid-template-columns:110px minmax(0,1fr);gap:8px 16px;font-size:14px;line-height:20px;margin:14px 0 0}
+  .kv>b{color:var(--muted);font-weight:500}
+  .kv .mono{overflow-wrap:anywhere}
+  details.cd{margin-top:12px}
+  details.cd summary{cursor:pointer;color:var(--muted);font-size:13px}
+  .data{margin-top:8px;background:#000;border:1px solid var(--border-muted);border-radius:var(--radius-input);padding:10px 12px;max-height:140px;overflow:auto;color:var(--muted);font-family:var(--mono);font-size:12px;word-break:break-all}
+  .btns{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin-top:18px}
+  .btn{height:var(--btn-h);padding:0 24px;border-radius:var(--pill);font-weight:600;font-size:15px;cursor:pointer;color:#fff;border:1px solid var(--primary);background:linear-gradient(90deg,var(--primary),var(--primary-2));transition:opacity .15s;display:inline-flex;align-items:center;gap:10px;white-space:nowrap}
+  .btn:hover{opacity:.75} .btn:disabled{opacity:.4;cursor:default}
+  .btn.sec{font-weight:400;border-color:var(--border);background:transparent}
+  .btn.sec:hover{background:var(--hover);opacity:1} .btn.sec:disabled:hover{background:transparent}
+  .btn img{width:20px;height:20px;border-radius:5px}
+  .note{font-size:13px;line-height:20px;padding:12px 14px;border-radius:12px;background:var(--inset);border:1px solid var(--border-muted);color:var(--muted);margin-top:14px;overflow-wrap:anywhere}
+  .note.warn{border-color:var(--warning-line);background:var(--warning-soft);color:#F8D08A}
+  .note.bad{border-color:var(--error-line);background:var(--error-soft);color:#F2A6A6}
+  .note.ok{border-color:var(--success-line);background:var(--success-soft);color:#A4DCCB}
+  .note b{color:var(--text);font-weight:600}
+  .preparing{display:flex;gap:16px;align-items:center;padding:22px;border:1px dashed var(--primary-line);border-radius:var(--radius-card);background:var(--inset);margin:0 0 18px}
+  .preparing .spin{width:22px;height:22px;border-width:3px;color:var(--primary);flex:none}
+  .preparing b{display:block;font-weight:600}
+  .preparing span.m{color:var(--muted);font-size:13px}
+  .backbar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;margin:-6px 0 16px;padding:10px 14px;border-radius:12px;background:var(--primary-soft);border:1px solid var(--primary-line);font-size:13px}
+  .backbar .btn{height:34px;padding:0 16px;font-size:14px}
+  .list{margin:6px 0 0;padding:0;list-style:none;font-size:13px;line-height:20px}
+  .list li{padding:6px 0;border-bottom:1px solid var(--border-muted);overflow-wrap:anywhere}
+  .list li:last-child{border-bottom:0}
+  .wallets{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px}
+  .disclaimer{border:1px solid var(--warning-line);background:var(--warning-soft);border-radius:14px;padding:16px 18px;margin:0 0 6px;font-size:13px;line-height:20px;color:#E9D3A8}
+  .disclaimer h3{margin:0 0 6px;font-size:14px;font-weight:600;color:var(--text)}
+  .disclaimer p{margin:0 0 8px}
+  .disclaimer label{display:flex;gap:10px;align-items:flex-start;margin-top:10px;padding-top:10px;border-top:1px solid var(--warning-line);color:var(--text);font-weight:500;cursor:pointer}
+  .disclaimer input{width:18px;height:18px;margin:1px 0 0;accent-color:var(--primary);flex:none;cursor:pointer}
+  .disclaimer.accepted{border-color:var(--border-muted);background:var(--inset);color:var(--muted)}
+
+  /* step navigator (right) */
+  .nav-card{padding:18px 18px 10px}
+  .nav-card h2{margin:0;font-size:16px;font-weight:600}
+  .nav-card .sub{font-size:12px;color:var(--muted);margin:2px 0 10px}
+  .srow{position:relative;display:flex;align-items:center;gap:10px;width:100%;padding:9px 8px;margin:0 -8px;width:calc(100% + 16px);border:0;border-radius:10px;background:none;color:var(--muted);font-size:13px;text-align:left;cursor:default}
+  .srow.nav{cursor:pointer;color:var(--text)} .srow.nav:hover{background:var(--hover)}
+  .srow.current{color:var(--text);font-weight:500}
+  .srow.view{background:var(--primary-soft)}
+  .srow .t{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .srow .c{font-size:12px;color:var(--placeholder);font-variant-numeric:tabular-nums}
+  .srow .you{font-size:9.5px;font-weight:600;letter-spacing:.04em;color:#fff;height:18px;line-height:18px;padding:0 7px;border-radius:var(--pill);background:linear-gradient(90deg,var(--primary),var(--primary-2))}
+  .rail{position:relative}
+  .rail::before{content:"";position:absolute;left:9px;top:18px;bottom:18px;width:2px;background:var(--border-muted)}
+  .mk{position:relative;z-index:1;flex:none;width:20px;height:20px;border-radius:50%;border:1px solid var(--border);background:var(--card);display:grid;place-items:center;font-size:10px;line-height:1;color:rgba(255,255,255,.45)}
+  .mk.done,.mk.signed,.mk.sent,.mk.earlier{border-color:var(--primary);background:var(--primary);color:#fff}
+  .mk.current,.mk.waiting,.mk.confirming,.mk.preparing{border-color:var(--primary);background:var(--bg);box-shadow:var(--glow);color:#fff}
+  .mk.failed,.mk.rejected{border-color:var(--error);background:var(--error-soft);color:var(--error)}
+  .mk.skipped,.mk.not-needed{border-style:dashed}
+  .sub-acts{list-style:none;margin:0 0 6px 30px;padding:0}
+  .sub-acts li{display:flex;gap:8px;align-items:center;font-size:12px;line-height:21px;color:var(--muted);min-width:0}
+  .sub-acts li .t{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .sub-acts .mk{width:12px;height:12px;font-size:7px}
+
+  .toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);z-index:30;display:flex;align-items:center;gap:14px;padding:8px 8px 8px 18px;border-radius:var(--pill);background:var(--popover);border:1px solid var(--primary-line);box-shadow:var(--glow);font-size:14px;max-width:calc(100% - 32px)}
+  .toast .btn{height:34px;padding:0 16px;font-size:14px}
+  footer{color:var(--placeholder);font-size:12px;text-align:center;padding:24px}
+  @media (max-width:640px){
+    header{padding:12px 16px;flex-wrap:wrap} main{padding:14px 16px 120px}
+    .counter{text-align:left} .bar{margin-left:0}
+    .card{padding:18px 16px}
+    .kv{grid-template-columns:1fr;gap:2px} .kv>b{margin-top:8px}
+    .act{grid-template-columns:28px minmax(0,1fr)} .act .right{grid-column:2;text-align:left} .act .args{grid-column:2}
+  }
+</style>
+</head>
+<body>
+<header>
+  <svg class="logo" viewBox="0 0 198.75 198.75" aria-hidden="true"><path fill="#fff" d="M198.75,99.37c0-20.6-21.02-38.09-52.5-46.87C137.46,21.02,119.97,0,99.37,0s-38.09,21.02-46.87,52.5C21.02,61.29,0,78.78,0,99.37s21.02,38.09,52.5,46.88c8.79,31.48,26.28,52.5,46.87,52.5s38.09-21.02,46.88-52.5c31.48-8.79,52.5-26.28,52.5-46.88M73.17,37.18c7.32-14.72,16.87-23.16,26.17-23.16s18.88,8.44,26.17,23.16c1.88,3.83,3.52,7.77,4.91,11.81-20.6-3.42-41.63-3.42-62.23,0,1.39-4.04,3.07-7.93,4.95-11.76l.03-.05ZM138.3,99.42c.01,9.02-.73,17.98-2.12,26.89l-63.75-63.79c8.91-1.39,17.92-2.08,26.94-2.06,11.86-.04,23.69,1.17,35.3,3.62,2.45,11.61,3.66,23.34,3.62,35.2M60.45,99.31c-.01-9.02.69-17.96,2.07-26.88l63.79,63.8c-8.91,1.39-17.92,2.08-26.94,2.06-11.86.04-23.69-1.18-35.3-3.62-2.45-11.61-3.66-23.44-3.62-35.3v-.06ZM37.19,125.54c-14.72-7.32-23.16-16.87-23.16-26.17s8.45-18.88,23.16-26.17c3.83-1.88,7.77-3.52,11.81-4.91-3.42,20.6-3.42,41.63,0,62.23-4.04-1.39-7.92-3.06-11.75-4.95l-.06-.03ZM125.6,161.6c-7.32,14.72-16.87,23.16-26.17,23.16s-18.88-8.45-26.17-23.16c-1.88-3.83-3.52-7.77-4.91-11.81,10.28,1.72,20.68,2.58,31.11,2.56,10.42.02,20.83-.84,31.11-2.56-1.39,4.04-3.05,7.93-4.93,11.76l-.03.05ZM161.61,125.58c-3.83,1.88-7.75,3.56-11.79,4.94,1.73-10.28,2.58-20.68,2.56-31.11.02-10.42-.84-20.83-2.56-31.11,4.04,1.38,7.98,3.02,11.81,4.91,14.72,7.32,23.16,16.87,23.16,26.17s-8.44,18.88-23.16,26.17h-.02Z"/></svg>
+  <div><div class="title">Fusion Vault Launchpad</div><div class="sub" id="hdrSub">Signing session</div></div>
+  <div class="spacer"></div>
+  <span id="forkTag" class="tag" hidden>Local fork</span>
+  <span id="chainPill" class="pill"><span class="dot"></span><span id="chainText">network ?</span></span>
+  <span id="acctPill" class="pill"><span class="dot"></span><span id="acctText">no wallet</span></span>
+  <div class="activity" id="activity" hidden><i></i></div>
+</header>
+
+<main>
+  <section class="status" id="status" aria-live="polite"><span id="statusIcon"></span><span class="txt" id="statusText">Connecting to the pipeline…</span><span class="el" id="statusEl"></span><span id="statusAct"></span></section>
+
+  <section class="strip">
+    <div><h1 id="title">Connecting…</h1><div class="meta" id="titleMeta"></div></div>
+    <div class="counter"><div class="big" id="counterBig">–</div><div class="muted" style="font-size:13px" id="counterSub"></div><div class="bar"><i id="bar" style="width:0"></i></div></div>
+  </section>
+
+  <section class="card map-card" aria-label="Vaults">
+    <div class="map-head"><h2 id="mapTitle">Vaults</h2><span class="muted" id="mapSub"></span></div>
+    <div class="map-wrap"><div class="map" id="map"></div></div>
+    <div class="legend"><span>Numbers: deployment order, children first</span><span>Solid line: connection signed · dashed: blocked</span><span>Click a finished vault or connection to review it</span></div>
+  </section>
+
+  <div class="grid">
+    <section class="card" id="detail"></section>
+    <aside class="card nav-card" id="steps"></aside>
+  </div>
+</main>
+
+<div class="toast" id="toast" hidden><span id="toastText"></span><button class="btn" id="toastBtn">Go to it</button></div>
+<footer>Local page served by <code>python -m deploy … --signer browser</code>. Nothing leaves this machine except the transactions you confirm in your wallet.</footer>
+
+<script>
+(() => {
+  const TOKEN = "__SIGNER_TOKEN__";
+  const CHAINS = {1:["Ethereum","https://etherscan.io","ETH"],8453:["Base","https://basescan.org","ETH"],42161:["Arbitrum","https://arbiscan.io","ETH"],
+    999:["HyperEVM","https://hyperevmscan.io","HYPE"],43114:["Avalanche","https://snowtrace.io","AVAX"],130:["Unichain","https://uniscan.xyz","ETH"],
+    10:["Optimism","https://optimistic.etherscan.io","ETH"],747474:["Katana","https://katanascan.com","ETH"],9745:["Plasma","https://plasmascan.to","XPL"],31337:["Local anvil","","ETH"]};
+  const STEP_INFO = {
+    "00_dry_run_report":["Plan summary","Prints the plan. Nothing to sign."],
+    "01_clone":["Create the vault","The Fusion factory clones a PlasmaVault together with its access, price, fee, withdraw, rewards and context managers. This is the only transaction that creates contracts; every later one configures them. The DAO fee package is fixed here."],
+    "01b_bootstrap_roles":["Bootstrap roles","Gives the deployer the temporary roles it needs to configure the vault. The appointed holders get their roles in Final roles, where the deployer's temporary roles are renounced."],
+    "01c_total_supply_cap":["Supply cap","Sets the maximum number of shares the vault can issue."],
+    "02_add_fuses":["Add fuses","Registers the fuses: the only contracts the vault may call to move funds."],
+    "02b_standard_fuses":["Standard fuses","Brings the factory-injected standard fuses up to the currently whitelisted versions."],
+    "03_grant_substrates":["Grant substrates","Tells each market which assets, vaults or pools its fuses may touch. Anything not granted here is out of reach for the alpha. For a parent vault, the child vaults it holds are granted here."],
+    "03b_callback_handlers":["Callback handlers","Registers the handlers that route flash-loan and swap callbacks back into the vault."],
+    "04_balance_fuses":["Balance fuses","Adds the fuses that value each market, and the dependency graph that refreshes related markets together, so the vault's NAV is complete."],
+    "05_price_feeds":["Price feeds","Points the vault's own price oracle at a feed for every asset it holds, including the shares of child vaults. The run refuses to finish while any asset is unpriceable."],
+    "06_withdraw_manager":["Withdrawals","Configures scheduled withdrawals: the request window and the withdrawal fee."],
+    "07_fees":["Fees","Sets the curator's management and performance fees and their recipients, on top of the DAO fee package."],
+    "08_instant_withdrawal":["Instant withdrawal","Sets the order in which markets are unwound when a user withdraws instantly."],
+    "09_pre_hooks":["Pre-hooks","Installs checks that run before selected vault functions."],
+    "10_whitelist":["Whitelist","Restricts deposits to approved accounts and adds the initial ones."],
+    "11_roles":["Final roles","Grants the roles to their appointed holders. Owner, Atomist and Fuse manager are required; every other role is optional and can be skipped here and granted later. Alpha roles (alpha, balance and rewards updaters) are not asked for now: grant them with --assign-alpha once the alpha is ready."],
+    "12_transferability":["Transferability","Lets shares move between accounts. One-way: it cannot be switched off."],
+    "connect":["Connect the vaults","The child vault accepts deposits only from whitelisted accounts. This grants the parent vault WHITELIST_ROLE on the child's access manager, so the parent's alpha can allocate into it."],
+  };
+  const STATUS_TEXT = {signed:"Signed",sent:"Sent",confirming:"Confirming",waiting:"Waiting for you",rejected:"Not signed",skipped:"Skipped",preparing:"Preparing",
+    "not-needed":"Not needed",upcoming:"Ahead",earlier:"Signed earlier",done:"Done",current:"Signing now",failed:"Failed",blocked:"Blocked"};
+  const SIGNED = new Set(["signed","earlier","sent"]);
+
+  const $ = id => document.getElementById(id);
+  const esc = v => String(v ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+  const short = a => a && a.length > 14 ? a.slice(0, 6) + "…" + a.slice(-4) : (a || "");
+  const isAddr = v => typeof v === "string" && /^0x[0-9a-fA-F]{40}$/.test(v);
+  const post = (path, body) => fetch(path, {method:"POST", headers:{"content-type":"application/json","x-signer-token":TOKEN}, body:JSON.stringify(body)}).then(r => r.json());
+  const chainName = id => (CHAINS[id] || ["chain " + id])[0];
+
+  let providers = [], wallet = null, account = null, walletChain = null;
+  let phaseKey = null, phaseStart = Date.now(), closed = false;   // declared first: wallet discovery can render before the rest runs
+  let accepted = false;
+  try { accepted = sessionStorage.getItem("fusion-signer-accepted") === TOKEN; } catch (e) {}
+  const sentIds = new Set();
+  let S = null, lastJson = "", busy = false, offline = false;
+  let selStage = null, selStep = null, follow = true;   // what is on screen; follow = track the run
+  let connectMsg = null, sendMsg = null, toastMsg = null, toastTimer = null, batchCapable = false, lastCaps = null;
+  const preflight = {};
+
+  // ---------- wallet (EIP-6963: Rabby, MetaMask, …; window.ethereum as the fallback) ----------
+  window.addEventListener("eip6963:announceProvider", e => {
+    if (!providers.some(p => p.info.uuid === e.detail.info.uuid)) { providers.push(e.detail); render(); }
+  });
+  window.dispatchEvent(new Event("eip6963:requestProvider"));
+  setTimeout(() => {
+    if (!providers.length && window.ethereum) {
+      providers.push({info:{name: window.ethereum.isRabby ? "Rabby" : window.ethereum.isMetaMask ? "MetaMask" : "Browser wallet", icon:"", uuid:"injected"}, provider:window.ethereum});
+      render();
+    }
+  }, 500);
+  function flash(msg){ toastMsg = msg; clearTimeout(toastTimer); toastTimer = setTimeout(() => { toastMsg = null; render(); }, 7000); render(); }
+
+  async function connect(i){
+    if (!accepted) { follow = false; selStep = "wallet"; flash("Accept the disclaimer before connecting a wallet"); return; }
+    wallet = providers[i];
+    const p = wallet.provider;
+    try {
+      account = (await p.request({method:"eth_requestAccounts"}))[0];
+      walletChain = parseInt(await p.request({method:"eth_chainId"}), 16);
+      if (S && walletChain !== S.chainId) {
+        try { await p.request({method:"wallet_switchEthereumChain", params:[{chainId:"0x" + S.chainId.toString(16)}]}); walletChain = S.chainId; }
+        catch (e) { flash("Switch the wallet to " + chainName(S.chainId) + ": " + (e.message || e)); }
+      }
+      if (p.on && !p.__fusionWired) {
+        p.__fusionWired = true;
+        p.on("accountsChanged", a => { account = a[0] || null; report(); });
+        p.on("chainChanged", c => { walletChain = parseInt(c, 16); report(); });
+      }
+      await report();
+    } catch (e) { connectMsg = {cls:"bad", text:"Connection failed: " + (e.message || e)}; render(); }
+  }
+  // On a fork the chain id equals the live chain's, so it cannot tell where the wallet sends.
+  // The pipeline funds a marker account on the fork only; read it through the WALLET's RPC.
+  async function markerBalance(){
+    const m = S && S.board && S.board.forkMarker; if (!m || !wallet) return null;
+    try { return await wallet.provider.request({method:"eth_getBalance", params:[m.address, "latest"]}); }
+    catch (e) { return null; }
+  }
+  async function walletOnFork(){
+    const m = S && S.board && S.board.forkMarker; if (!m) return true;
+    const b = await markerBalance();
+    return b !== null && BigInt(b) === BigInt(m.balance);
+  }
+  // EIP-5792: can the wallet run a list of calls as one atomic batch on this chain?
+  async function atomicSupport(){
+    if (!wallet || !account || !walletChain) return false;
+    const hex = "0x" + walletChain.toString(16);
+    try {
+      const caps = await wallet.provider.request({method:"wallet_getCapabilities", params:[account, [hex]]});
+      lastCaps = caps;
+      const c = caps && (caps[hex] || caps[walletChain] || caps[String(walletChain)]);
+      const st = c && c.atomic && c.atomic.status;
+      return st === "supported" || st === "ready" || !!(c && c.atomicBatch && c.atomicBatch.supported);
+    } catch (e) { lastCaps = {error: String(e && (e.message || e))}; return false; }
+  }
+  async function report(){
+    if (!account) { render(); return; }
+    const atomic = await atomicSupport(); batchCapable = atomic;
+    const r = await post("/api/connect", {account, chainId: walletChain, accepted, markerBalance: await markerBalance(), atomic, caps: lastCaps, wallet: wallet && wallet.info && wallet.info.name});
+    if (r.ok) follow = true;
+    connectMsg = r.ok ? {cls:"ok", text:"Connected. The run moves to the first signature by itself."} : {cls:"bad", text:"Not accepted: " + r.problem};
+    render();
+    runPreflight();
+  }
+  async function runPreflight(){
+    if (!wallet || !account || !S) return;
+    const p = wallet.provider, b = S.board;
+    try { preflight.balance = BigInt(await p.request({method:"eth_getBalance", params:[account, "latest"]})); } catch (e) { preflight.balance = undefined; }
+    if (b.factory) {
+      try {   // getBusinessClientFeePackages(address) -> ((uint256,uint256,address)[] packages, bool isCustom)
+        const hex = (await p.request({method:"eth_call", params:[{to:b.factory, data:"0xee9bcce9" + account.slice(2).toLowerCase().padStart(64, "0")}, "latest"]})).slice(2);
+        const w = i => BigInt("0x" + hex.slice(i * 64, i * 64 + 64));
+        const off = Number(w(0)) / 32, n = Number(w(off)), packages = [];
+        for (let i = 0; i < n; i++) packages.push({mgmt:Number(w(off + 1 + i * 3)), perf:Number(w(off + 2 + i * 3))});
+        preflight.fees = {isCustom: w(1) === 1n, packages};
+      } catch (e) { preflight.fees = {error:"this factory does not expose per-client fee packages"}; }
+    }
+    render();
+  }
+
+  async function poll(){
+    try {
+      const txt = await fetch("/api/state", {cache:"no-store"}).then(r => r.text());
+      if (offline) { offline = false; render(); }
+      if (txt !== lastJson) { lastJson = txt; const first = !S; S = JSON.parse(txt); render(); if (first) runPreflight(); }
+    } catch (e) { if (!offline) { offline = true; render(); } }
+    setTimeout(poll, 1000);
+  }
+
+  // ---------- model ----------
+  // A single-vault run has no campaign: draw it as a one-vault map.
+  function campaign(){
+    if (S.campaign) return S.campaign;
+    const b = S.board, v = b.vault || {};
+    return {name: b.strategy, current: b.outcome ? null : (b.stageId || "vault"), links: [], vaults: [{id: b.stageId || "vault", name: v.name, symbol: v.symbol,
+      chain: S.chainId, status: b.outcome ? (b.outcome.ok ? "done" : "failed") : "current", order: 1, signed: b.signed, total: b.total,
+      address: b.instance && b.instance.plasma_vault, blocked: null}]};
+  }
+  const curStageId = () => S.board.stageId || "vault";
+  const boardOf = id => (S.archive && S.archive[id] && id !== curStageId()) ? S.archive[id] : (id === curStageId() ? S.board : (S.archive || {})[id]);
+  const stageOf = id => { const C = campaign(); return C.vaults.find(v => v.id === id) || C.links.find(l => l.id === id); };
+  const stageNav = st => st && ["done","current","failed"].includes(st.status) && !!boardOf(st.id);
+  const live = s => s.actions.filter(a => a.status !== "not-needed" && a.status !== "skipped");
+  const signSteps = b => b.steps.filter(s => live(s).length || s.status === "failed");
+  const runDone = () => S.campaign ? !!S.campaign.finished : !!S.board.outcome;
+  const runOk = () => S.campaign ? !!(S.campaign.finished && S.campaign.finished.ok) : !!(S.board.outcome && S.board.outcome.ok);
+
+  function currentStepKey(b){
+    if (!S.connected) return "wallet";
+    const hot = signSteps(b).find(s => s.status === "current" || s.status === "failed");
+    if (hot) return hot.name;
+    if (b.outcome) return "verify";
+    const next = signSteps(b).find(s => s.status === "upcoming");
+    return next ? next.name : "verify";
+  }
+  function rows(b, isCurrent){   // the step navigator rows of one stage
+    const cur = isCurrent ? currentStepKey(b) : null;
+    const out = [];
+    if (isCurrent) out.push({key:"wallet", title:"Connect wallet", status: S.connected ? "done" : "current", n:"", nav:true});
+    signSteps(b).forEach(s => {
+      const r = live(s), d = r.filter(a => SIGNED.has(a.status)).length;
+      out.push({key:s.name, title:(STEP_INFO[s.name] || [s.name])[0], status:s.status, n:`${d}/${r.length}`, nav:["done","earlier","current","failed"].includes(s.status), step:s});
+    });
+    out.push({key:"verify", title: b.kind === "link" ? "Done" : "Verify & finish", status: b.outcome ? (b.outcome.ok ? "done" : "failed") : "upcoming", n:"", nav: !!b.outcome});
+    out.forEach(r => { if (r.key === cur && r.status === "upcoming") { r.status = "current"; r.nav = true; } r.here = r.key === cur; });
+    return out;
+  }
+  const explorer = () => S && !S.board.isLocalFork ? (CHAINS[S.chainId] || [])[1] : "";
+  function labelOf(a, b){
+    if (!a || !S) return "";
+    const l = a.toLowerCase(), C = campaign();
+    const names = {plasma_vault:"PlasmaVault", access_manager:"AccessManager", withdraw_manager:"WithdrawManager", fee_manager:"FeeManager",
+      rewards_manager:"RewardsManager", price_manager:"PriceManager", context_manager:"ContextManager"};
+    for (const v of C.vaults) if (v.address && v.address.toLowerCase() === l) return (v.symbol || v.id) + " vault";
+    const inst = (b || S.board).instance || {};
+    for (const [k, n] of Object.entries(names)) if (inst[k] && inst[k].toLowerCase() === l) return n;
+    const bb = b || S.board;
+    if (bb.factory && bb.factory.toLowerCase() === l) return "FusionFactory";
+    if (S.account && S.account.toLowerCase() === l) return "deployer";
+    if (bb.vault && bb.vault.underlying && bb.vault.underlying.toLowerCase() === l) return "underlying";
+    return "";
+  }
+  const txLink = h => { if (!h) return ""; const ex = explorer();
+    return ex ? `<a class="mono" target="_blank" rel="noopener" href="${ex}/tx/${esc(h)}" title="${esc(h)}">${esc(short(h))}</a>` : `<span class="mono" title="${esc(h)}">${esc(short(h))}</span>`; };
+  const addrLink = (a, b) => { const ex = explorer(), nm = labelOf(a, b);
+    const t = nm ? `${esc(nm)} <span class="muted mono">${esc(short(a))}</span>` : `<span class="mono">${esc(short(a))}</span>`;
+    return ex ? `<a target="_blank" rel="noopener" href="${ex}/address/${esc(a)}" title="${esc(a)}">${t}</a>` : `<span title="${esc(a)}">${t}</span>`; };
+  function fmt(v, b){
+    if (isAddr(v)) return addrLink(v, b);
+    if (Array.isArray(v)) return v.length > 6 ? `[${v.slice(0, 6).map(x => fmt(x, b)).join(", ")}, … +${v.length - 6}]` : `[${v.map(x => fmt(x, b)).join(", ")}]`;
+    if (v && typeof v === "object") return "{" + Object.entries(v).map(([k, x]) => `${esc(k)}: ${fmt(x, b)}`).join(", ") + "}";
+    const s = String(v); return /^0x[0-9a-fA-F]{41,}$/.test(s) ? `<span class="mono" title="${esc(s)}">${esc(short(s))}</span>` : esc(s);
+  }
+  const keyLabel = k => String(k ?? "").split("->")[0];   // "ROLE->0x…": the account is shown under Arguments
+  const stageName = st => st ? (st.symbol || (st.parent ? `${st.parent} → ${st.child}` : st.id)) : "";
+
+  // ---------- status (what the run does now) ----------
+  function phase(){
+    if (offline) return {k:"offline", cls:"bad", text:"The pipeline is not reachable", hint:"Check the terminal that runs python -m deploy. The page reconnects by itself."};
+    if (!S) return {k:"load", cls:"work", work:true, text:"Connecting to the pipeline…"};
+    const b = S.board, C = campaign(), st = stageOf(curStageId()), who = C.vaults.length > 1 || C.links.length ? stageName(st) + " · " : "";
+    if (runDone()) return runOk() ? {k:"done", cls:"ok", text: C.vaults.length > 1 ? "Done: every vault that can be deployed is deployed, connected and verified" : "Done: the vault is created and verified"}
+      : {k:"stop", cls:"bad", text:"The run stopped. Details below."};
+    if (!S.connected && connectMsg && connectMsg.cls === "bad") return {k:"wallet-bad", cls:"bad", text: connectMsg.text, hint: S.board.isLocalFork ? "Fork URL: " + (S.board.forkRpc || "") + " · then connect again" : "Fix it in the wallet, then connect again"};
+    if (!S.connected) return {k:"wallet", cls:"you", you:true, text: accepted ? `Waiting for you: connect the deployer wallet${S.expectedSigner ? " (" + short(S.expectedSigner) + ")" : ""} on ${chainName(S.chainId)}` : "Waiting for you: read and accept the disclaimer, then connect the wallet"};
+    const p = S.pending;
+    if (p && busy) return {k:"wallet-" + p.id, cls:"you", you:true, text: who + "Confirm the transaction in " + (wallet ? wallet.info.name : "your wallet"), hint:"The wallet window may be behind this one."};
+    if (p && !sentIds.has(p.id)) return {k:"sign-" + p.id, cls:"you", you:true, text: who + (p.optional ? "Waiting for you: sign this optional role, or skip it" : "Waiting for you: review and click Sign")};
+    const conf = b.steps.flatMap(s => s.actions).find(a => a.status === "confirming");
+    if (conf || (p && sentIds.has(p.id))) return {k:"confirm-" + (conf ? conf.index : p.id), cls:"work", work:true, text: who + "Transaction sent · waiting for the block", hint:"On a live chain this takes one block. Nothing to do."};
+    if (b.outcome) return {k:"next-" + curStageId(), cls:"work", work:true, text: "Starting the next vault", hint:"Loading its plan and preparing its first transaction."};
+    const open = b.steps.some(s => ["current","upcoming"].includes(s.status) && live(s).length);
+    if (!open) return {k:"verify-" + curStageId(), cls:"work", work:true, text: who + (b.kind === "link" ? "Finishing the connection" : "Reading the new vault back to verify it"), hint:"Read-only calls; nothing to sign."};
+    return {k:"prep-" + curStageId() + b.signed, cls:"work", work:true, text: who + "Preparing the next transaction", hint:"Estimating gas and checking it would not revert, before it reaches your wallet."};
+  }
+  function renderStatus(){
+    const ph = phase();
+    if (ph.k !== phaseKey) { phaseKey = ph.k; phaseStart = Date.now(); }
+    $("status").className = "status " + ph.cls;
+    $("statusIcon").innerHTML = ph.work ? '<span class="spin" style="color:var(--primary)"></span>' : ph.you ? '<span class="dotp"></span>' : "";
+    $("statusText").innerHTML = esc(ph.text) + (ph.hint ? `<span class="hint">${esc(ph.hint)}</span>` : "");
+    $("statusAct").innerHTML = ph.k === "done" || ph.k === "stop" ? `<button class="btn sec" id="closeBtn" ${closed ? "disabled" : ""}>${closed ? "Session closed" : "Close signing session"}</button>` : "";
+    if ($("closeBtn")) $("closeBtn").onclick = async () => { closed = true; await post("/api/close", {}).catch(() => {}); render(); };
+    $("activity").hidden = !ph.work;
+    tick();
+  }
+  function tick(){
+    const ph = phase(), sec = Math.floor((Date.now() - phaseStart) / 1000), show = ph.work || ph.you;
+    $("statusEl").textContent = show && sec >= 2 ? (sec < 60 ? sec + " s" : Math.floor(sec / 60) + " min " + (sec % 60) + " s") + (ph.work && sec >= 45 ? " · still working, slow RPCs can take a minute" : "") : "";
+  }
+  setInterval(() => { if (S) tick(); }, 1000);
+
+  // ---------- rendering ----------
+  function render(){
+    if (!S) { if (offline) $("title").textContent = "The pipeline is not reachable"; renderStatus(); return; }
+    const C = campaign(), cur = curStageId();
+    if (follow || !selStage || !stageNav(stageOf(selStage)) && selStage !== cur) { selStage = cur; selStep = null; follow = true; }
+    const vb = boardOf(selStage) || S.board, isCur = selStage === cur;
+    const rs = rows(vb, isCur);
+    if (!selStep || !rs.some(r => r.key === selStep && r.nav) || (follow && isCur)) selStep = (rs.find(r => r.here) || rs[rs.length - 1]).key;
+
+    $("hdrSub").textContent = "Signing session · " + (C.name || vb.strategy || "");
+    $("forkTag").hidden = !S.board.isLocalFork;
+    $("chainText").textContent = walletChain ? `${chainName(walletChain)} · ${walletChain}` : `target ${chainName(S.chainId)} · ${S.chainId}`;
+    $("chainPill").className = "pill " + (walletChain ? (walletChain === S.chainId ? "ok" : "bad") : "");
+    $("acctText").textContent = account ? short(account) + (wallet ? " · " + wallet.info.name : "") : "no wallet";
+    $("acctPill").className = "pill " + (account ? (S.connected && S.account && S.account.toLowerCase() === account.toLowerCase() ? "ok" : "bad") : "");
+
+    // title + overall counter
+    const multi = C.vaults.length > 1 || C.links.length > 0;
+    const runnable = [...C.vaults.filter(v => v.status !== "blocked"), ...C.links.filter(l => l.executable && l.status !== "blocked")];
+    const tot = runnable.reduce((a, x) => a + (x.total || 0), 0), sig = runnable.reduce((a, x) => a + (x.signed || 0), 0);
+    const nVaults = C.vaults.filter(v => v.status !== "blocked").length, doneVaults = C.vaults.filter(v => v.status === "done").length;
+    const st = stageOf(cur);
+    $("title").innerHTML = multi ? `Vault set <span class="mono" style="font-size:15px;color:var(--muted)">${esc(C.name)}</span>`
+      : esc((S.board.vault || {}).name || C.name || "Vault") + ((S.board.vault || {}).symbol ? ` <span class="chip current" style="vertical-align:4px">${esc(S.board.vault.symbol)}</span>` : "");
+    $("titleMeta").innerHTML = multi ? `${nVaults} vault${nVaults === 1 ? "" : "s"} to deploy · ${C.links.filter(l => l.executable && l.status !== "blocked").length} connection(s) to sign · ${C.vaults.length - nVaults} blocked`
+      : `${esc(chainName(S.chainId))} · ${S.board.vault && S.board.vault.underlying ? addrLink(S.board.vault.underlying) : ""}`;
+    $("counterBig").innerHTML = tot ? `${sig} <span>of ${tot} signatures</span>` : `${sig} <span>signed</span>`;
+    $("counterSub").textContent = runDone() ? "All stages finished" : multi ? `Vault ${Math.min(doneVaults + 1, nVaults)} of ${nVaults}${st ? " · now " + stageName(st) : ""}` : `${Math.max(0, tot - sig)} left`;
+    $("bar").style.width = (tot ? Math.round(100 * sig / tot) : 0) + "%";
+
+    renderMap(C);
+    renderSteps(vb, rs, isCur);
+    renderDetail(vb, rs, isCur);
+    renderStatus();
+
+    const away = (!isCur || (selStep !== (rs.find(r => r.here) || {}).key)) && (S.pending || !S.connected);
+    $("toast").hidden = !(away || offline || toastMsg);
+    $("toastText").textContent = offline ? "The pipeline is not reachable. Is it still running?" : toastMsg ? toastMsg
+      : S.pending ? `A signature is waiting in ${stageName(st)}` : "Connect the wallet to continue";
+    $("toastBtn").hidden = offline || !!toastMsg;
+    $("toastBtn").onclick = () => { follow = true; render(); };
+  }
+
+  function select(stage, step){ follow = stage === curStageId() && !step; selStage = stage; selStep = step || null; render(); }
+
+  // vault map: columns by depth (a parent left of its children), lines drawn after layout
+  function renderMap(C){
+    const depth = {}, parents = id => C.links.filter(l => l.child === id).map(l => l.parent);
+    const d = id => depth[id] ?? (depth[id] = parents(id).length ? 1 + Math.max(...parents(id).map(d)) : 0);
+    C.vaults.forEach(v => d(v.id));
+    const cols = [];
+    C.vaults.forEach(v => (cols[depth[v.id]] = cols[depth[v.id]] || []).push(v));
+    const cur = curStageId();
+    $("mapTitle").textContent = C.vaults.length > 1 ? "Vaults and connections" : "Vault";
+    $("mapSub").textContent = C.vaults.length > 1 ? "money flows left to right: a parent holds shares of the vaults on its right" : "";
+    const node = v => {
+      const cls = ["vnode", v.status, stageNav(v) ? "nav" : "", v.id === selStage ? "sel" : ""].join(" ");
+      const pct = v.total ? Math.round(100 * v.signed / v.total) : 0;
+      const stTxt = v.status === "blocked" ? "Blocked · hover for why" : v.status === "done" ? (v.address ? short(v.address) : "Deployed") : v.status === "current" ? "Signing now" : v.status === "failed" ? "Failed" : "Waiting";
+      return `<button class="${cls}" data-stage="${esc(v.id)}" title="${esc(v.blocked || v.name || v.id)}">
+        ${v.id === cur && v.status === "current" ? '<span class="here">YOU ARE HERE</span>' : ""}
+        <div class="top"><span class="ord">${v.status === "done" ? "✓" : v.status === "blocked" ? "–" : v.order}</span><span class="sym">${esc(v.symbol || v.id)}</span></div>
+        <div class="nm"><span class="chain">${esc(chainName(v.chain))}</span> ${esc(v.name || v.id)}</div>
+        <div class="st"><span>${esc(stTxt)}</span><span>${v.status === "blocked" ? "" : `${v.signed}/${v.total}`}</span></div>
+        <div class="mini"><i style="width:${v.status === "blocked" ? 0 : pct}%"></i></div></button>`;
+    };
+    $("map").innerHTML = `<svg id="edges"></svg>` + cols.map(col => `<div class="col">${col.map(node).join("")}</div>`).join("") +
+      C.links.map(l => `<button class="elabel ${l.status} ${stageNav(l) ? "nav" : ""} ${l.id === selStage ? "sel" : ""}" data-stage="${esc(l.id)}" data-edge="${esc(l.id)}" title="${esc(l.blocked && l.status === "blocked" ? l.blocked : l.kind === "erc4626" ? "the parent holds the child's shares; signing grants the parent WHITELIST_ROLE on the child" : l.kind)}">
+        ${esc(l.kind === "erc4626" ? "ERC4626" : "cross-chain")} ${l.status === "done" ? "✓" : l.status === "current" ? "· signing" : l.status === "blocked" ? "⊘" : l.status === "failed" ? "· failed" : l.executable ? "· to sign" : "· drawn only"}</button>`).join("");
+    $("map").querySelectorAll("[data-stage]").forEach(el => { const s = stageOf(el.dataset.stage); if (stageNav(s)) el.onclick = () => select(el.dataset.stage); });
+    requestAnimationFrame(() => drawEdges(C));
+  }
+  function drawEdges(C){
+    const map = $("map"), svg = $("edges"); if (!map || !svg) return;
+    const box = map.getBoundingClientRect(), at = id => map.querySelector(`.vnode[data-stage="${CSS.escape(id)}"]`);
+    let h = `<defs><linearGradient id="g" x1="0" x2="1"><stop offset="0" stop-color="#8429FF"/><stop offset="1" stop-color="#6C00FF"/></linearGradient></defs>`;
+    C.links.forEach(l => {
+      const a = at(l.parent), b = at(l.child), lab = map.querySelector(`[data-edge="${CSS.escape(l.id)}"]`);
+      if (!a || !b) return;
+      const ra = a.getBoundingClientRect(), rb = b.getBoundingClientRect();
+      const x1 = ra.right - box.left, y1 = ra.top + ra.height / 2 - box.top, x2 = rb.left - box.left, y2 = rb.top + rb.height / 2 - box.top, mx = (x1 + x2) / 2;
+      const col = l.status === "done" ? "url(#g)" : l.status === "current" ? "#8429FF" : l.status === "failed" ? "#D94343" : "#45484D";
+      const dash = l.status === "blocked" || !l.executable ? 'stroke-dasharray="5 5"' : l.status === "current" ? 'stroke-dasharray="6 4"' : "";
+      h += `<path d="M${x1},${y1} C${mx},${y1} ${mx},${y2} ${x2},${y2}" fill="none" stroke="${col}" stroke-width="2" ${dash}>${l.status === "current" ? '<animate attributeName="stroke-dashoffset" from="20" to="0" dur="1s" repeatCount="indefinite"/>' : ""}</path>`;
+      h += `<circle cx="${x2}" cy="${y2}" r="3.5" fill="${l.status === "done" ? "#8429FF" : "#45484D"}"/>`;
+      if (lab) { lab.style.left = mx + "px"; lab.style.top = ((y1 + y2) / 2) + "px"; }
+    });
+    svg.innerHTML = h;
+  }
+  window.addEventListener("resize", () => S && drawEdges(campaign()));
+
+  function renderSteps(vb, rs, isCur){
+    const st = stageOf(selStage), C = campaign();
+    const title = vb.kind === "link" ? `Connection · ${esc(stageName(st))}` : `Steps · ${esc((vb.vault || {}).symbol || selStage)}`;
+    const packed = isCur && S.board.current === "batch";
+    const pm = packed && S.pending ? /^(\d+)\/(\d+)/.exec(S.pending.label || "") : null;
+    const sub = packed ? `Batched: every step below rides in ${pm ? pm[2] : "a few"} transaction(s)${pm ? ` · signing ${pm[1]} of ${pm[2]}` : ""}. Steps turn done when the batch is mined.`
+      : isCur ? (vb.kind === "link" ? "One signature on the child vault." : `${vb.signed} of ${vb.total} signed in this vault`) : "Finished · click a step to review it";
+    $("steps").innerHTML = `<h2>${title}</h2><div class="sub">${sub}</div><div class="rail">${rs.map(r => {
+      const glyph = r.status === "done" || r.status === "earlier" ? "✓" : r.status === "failed" ? "!" : "";
+      const acts = (r.key === selStep || r.here) && r.step ? `<ul class="sub-acts">${live(r.step).map(a => `<li><span class="mk ${a.status}">${SIGNED.has(a.status) ? "✓" : ""}</span><span class="t" title="${esc(a.action + (a.key ? " · " + keyLabel(a.key) : ""))}">${esc(a.action)}${a.key ? " · " + esc(keyLabel(a.key)) : ""}</span></li>`).join("")}</ul>` : "";
+      return `<button class="srow ${r.status} ${r.nav ? "nav" : ""} ${r.key === selStep ? "view" : ""}" data-step="${esc(r.key)}" ${r.nav ? "" : 'aria-disabled="true"'}>
+        <span class="mk ${r.status}">${glyph}</span><span class="t">${esc(r.title)}</span>${r.here && isCur && !packed ? '<span class="you">YOU ARE HERE</span>' : ""}<span class="c">${packed && r.status !== "done" ? "in batch" : esc(r.n)}</span></button>${acts}`;
+    }).join("")}</div>`;
+    $("steps").querySelectorAll(".srow.nav").forEach(el => el.onclick = () => { follow = false; selStep = el.dataset.step; render(); window.scrollTo({top:0, behavior:"smooth"}); });
+  }
+
+  function renderDetail(vb, rs, isCur){
+    const d = $("detail"), here = (rs.find(r => r.here) || {}).key;
+    let h = (!isCur || selStep !== here) && !runDone() ? `<div class="backbar"><span>${isCur ? "You are reviewing a finished step." : "You are reviewing a finished stage."} The run continues until the next signature.</span><button class="btn" id="curBtn">Back to “You are here”</button></div>` : "";
+    if (selStep === "wallet" && isCur) h += walletView();
+    else if (selStep === "verify") h += verifyView(vb);
+    else if (isCur && S.pending && (S.pending.batch || S.board.current === "batch") && (vb.steps.find(s => s.name === selStep) || {}).status !== "done")
+      h += S.pending.batch ? batchCard(vb, S.pending) : `<div class="stepv"><h3>Create and configure this vault</h3><div class="muted" style="font-size:13px;margin:4px 0 12px">Simulated on a fork of the live chain first. The clone, then AccessManager multicalls that carry every setup call.</div>${signCard(vb, {name: "batch", actions: []}, S.pending)}</div>`;
+    else { const step = vb.steps.find(s => s.name === selStep); h += step ? stepView(vb, step, rs, isCur) : walletView(); }
+    d.innerHTML = h;
+    if ($("curBtn")) $("curBtn").onclick = () => { follow = true; render(); };
+    d.querySelectorAll("[data-wallet]").forEach(el => el.onclick = () => connect(+el.dataset.wallet));
+    if ($("acceptBox")) $("acceptBox").onchange = e => {
+      accepted = e.target.checked;
+      try { accepted ? sessionStorage.setItem("fusion-signer-accepted", TOKEN) : sessionStorage.removeItem("fusion-signer-accepted"); } catch (err) {}
+      render();
+    };
+    if ($("signBtn")) $("signBtn").onclick = sign;
+    if ($("rejectBtn")) $("rejectBtn").onclick = reject;
+    if ($("skipBtn")) $("skipBtn").onclick = skip;
+  }
+
+  function walletView(){
+    const b = S.board;
+    let h = `<div class="eyebrow">Before the first signature</div><div class="step-head"><h2>Connect the deployer wallet</h2>
+      <span class="chip ${S.connected ? "done" : "current"}">${S.connected ? "Connected" : "Waiting for you"}</span></div>
+      <p class="desc">One account on ${esc(chainName(S.chainId))} signs every transaction ${campaign().vaults.length > 1 ? "of this vault" : "in this run"}. ${S.expectedSigner
+        ? `The pipeline accepts only <span class="mono">${esc(S.expectedSigner)}</span>.` : "The account you connect becomes the deployer."} Select it in the wallet, then connect.</p>`;
+    h += `<div class="disclaimer ${accepted ? "accepted" : ""}"><h3>Before you connect a wallet</h3>
+      <p>This signing page is provided <b>as is</b>, without warranty of any kind. IPOR Labs does not guarantee that it is 100% reliable or free of defects, that it shows every detail of a transaction correctly, or that it will keep working through a whole run.</p>
+      <p>Your wallet is the source of truth: check the contract, the function and the account in the wallet before you confirm each transaction. You are responsible for every transaction you sign and for the vaults you deploy. The full terms are in <span class="mono">DISCLAIMER.md</span> and the MIT license of this repository.</p>
+      <label><input type="checkbox" id="acceptBox" ${accepted ? "checked" : ""}> I have read this and accept that I use the signing page at my own risk.</label></div>`;
+    h += providers.length
+      ? `<div class="wallets">${providers.map((p, i) => `<button class="btn ${i ? "sec" : ""}" data-wallet="${i}" ${accepted ? "" : "disabled"} title="${accepted ? "" : "Accept the disclaimer first"}">${p.info.icon ? `<img src="${esc(p.info.icon)}" alt="">` : ""}${S.connected && wallet === p ? "Reconnect" : "Connect"} ${esc(p.info.name)}</button>`).join("")}</div>`
+      : `<div class="note warn">No browser wallet found. Install <b>Rabby</b> or MetaMask, unlock it and reload this page.</div>`;
+    if (connectMsg) h += `<div class="note ${connectMsg.cls}">${esc(connectMsg.text)}</div>`;
+    if (b.isLocalFork) {
+      const rpc = b.forkRpc || "http://127.0.0.1:8546";
+      h += `<div class="note warn"><b>This run targets a local fork</b> of ${esc(chainName(S.chainId))} at <span class="mono">${esc(rpc)}</span>. Point the wallet's ${esc(chainName(S.chainId))} network at the fork before you sign, or the wallet will simulate against the live chain and the fork will never see the transaction.<br>
+        <b>Rabby</b>: More → Modify RPC URL → ${esc(chainName(S.chainId))} → <span class="mono">${esc(rpc)}</span>. <b>MetaMask</b>: Networks → ${esc(chainName(S.chainId))} → Edit → add that RPC URL. Switch back when you are done.</div>`;
+    }
+    if (S.connected) {
+      const bal = preflight.balance, unit = (CHAINS[S.chainId] || [])[2] || "native";
+      let pf = `<li>Deployer ${addrLink(S.account)}</li><li>Gas balance: ${bal === undefined ? "…" : (Number(bal) / 1e18).toFixed(5) + " " + esc(unit)}${bal === 0n ? ' <span class="bad">· fund this account before you sign</span>' : ""}</li>`;
+      const f = preflight.fees, idx = b.feePackageIndex ?? 0;
+      if (f && f.error) pf += `<li>DAO fee package: <span class="muted">${esc(f.error)}</span></li>`;
+      else if (f) {
+        const p = f.packages[idx], pct = x => +(x / 100).toFixed(2) + "%";
+        pf += `<li>DAO fee package: ${f.isCustom ? '<span class="ok">custom package set for this deployer</span>' : '<span class="warn">factory defaults, no custom package for this deployer</span>'}` +
+          (p ? ` · index ${idx}: management ${pct(p.mgmt)}, performance ${pct(p.perf)}` : ` · <span class="bad">index ${idx} does not exist</span>`) + `</li>`;
+      }
+      h += `<div class="note"><b>Pre-flight</b><ul class="list">${pf}</ul></div>`;
+      if (f && !f.error && !f.isCustom) h += `<div class="note warn">If a custom DAO fee package was agreed, stop here. The DAO must set it for this deployer on the factory <b>before</b> a vault is created: the package is fixed at clone time.</div>`;
+    }
+    if (b.planNote) h += `<div class="note warn">${esc(b.planNote)}</div>`;
+    return h;
+  }
+
+  function actionRows(vb, step, isCur){
+    const pend = isCur && S.pending && S.pending.stage === (vb.stageId || null) ? S.pending : null;
+    return `<div class="actions">${step.actions.map((a, i) => {
+      const now = pend && a.index != null && a.index === pend.actionIndex;
+      const ic = SIGNED.has(a.status) ? "✓" : a.status === "rejected" ? "✕" : ["waiting","confirming","preparing"].includes(a.status) ? '<span class="spin"></span>' : String(i + 1);
+      const args = Object.entries(a.args || {}).map(([k, x]) => `<b>${esc(k)}</b> ${fmt(x, vb)}`).join(" · ");
+      const right = a.tx_hash ? txLink(a.tx_hash) + (a.gas_used ? `<div class="muted">${Number(a.gas_used).toLocaleString()} gas</div>` : "") : `<span class="chip ${a.status}">${STATUS_TEXT[a.status] || esc(a.status)}</span>`;
+      return `<div class="act ${a.status} ${now ? "now" : ""}"><span class="ic">${ic}</span>
+        <div class="fn">${esc(a.action)}${a.key ? ` · <span class="k">${esc(keyLabel(a.key))}</span>` : ""}${a.target ? ` <span class="muted" style="font-weight:400">on</span> ${addrLink(a.target, vb)}` : ""}${a.optional ? ' <span class="chip" title="Can be skipped on the signing page">optional</span>' : ""}${a.planned ? "" : ' <span class="chip warn" title="The dry-run plan did not declare this action">not in plan</span>'}</div>
+        <div class="right">${right}</div>
+        ${args || a.note || a.error ? `<div class="args">${args}${a.note ? (args ? "<br>" : "") + esc(a.note) : ""}${a.error ? `<br><span class="bad">${esc(a.error)}</span>` : ""}</div>` : ""}</div>`;
+    }).join("")}</div>`;
+  }
+
+  function stepView(vb, step, rs, isCur){
+    const [title, desc] = STEP_INFO[step.name] || [step.name, ""];
+    const r = live(step), done = r.filter(a => SIGNED.has(a.status)).length, pos = rs.filter(x => x.step).findIndex(x => x.key === step.name) + 1;
+    const st = stageOf(vb.stageId || curStageId());
+    let h = `<div class="eyebrow">${campaign().vaults.length > 1 ? esc(stageName(st)) + " · " : ""}Step ${pos} of ${rs.filter(x => x.step).length} · ${done} of ${r.length} signed</div>
+      <div class="step-head"><h2>${esc(title)}</h2><span class="chip ${step.status}">${STATUS_TEXT[step.status] || esc(step.status)}</span></div><p class="desc">${esc(desc)}</p>`;
+    if (step.status === "failed") h += `<div class="note bad"><b>This step failed.</b> ${esc(step.error || "")}<br>Fix the cause and run the same command again: finished steps are skipped and nothing is sent twice.</div>`;
+    if (step.status === "earlier") h += `<div class="note ok">Completed by an earlier run (same state file).${step.earlier_hashes.length ? " Transactions: " + step.earlier_hashes.map(txLink).join(", ") : ""}</div>`;
+    const pend = isCur && S.pending && S.pending.stage === (vb.stageId || null) ? S.pending : null;
+    if (pend && step.status === "current") h += signCard(vb, step, pend);
+    else if (isCur && (step.status === "current" || (step.status === "upcoming" && step.name === currentStepKey(vb)))) h += preparingCard();
+    h += step.actions.length ? `<h3 style="font-size:14px;font-weight:600;margin:20px 0 10px">Signatures in this step</h3>${actionRows(vb, step, isCur)}` : `<div class="note">No transaction in the plan for this step.</div>`;
+    return h;
+  }
+  function preparingCard(){
+    const ph = phase();
+    return `<div class="preparing"><span class="spin"></span><div><b>${esc(ph.text)}</b><span class="m">${esc(ph.hint || "The Sign button appears here as soon as the transaction is ready.")}</span></div></div>`;
+  }
+  function batchCard(vb, p){
+    const gas = p.batch.reduce((t, c) => t + (c.gas_used || 0), 0);
+    return `<div class="sign"><div class="eyebrow">${esc(stageName(stageOf(vb.stageId || curStageId())))} · one confirmation</div>
+      <h3>Create and configure this vault: ${esc(p.label)}</h3>
+      <div class="muted" style="font-size:13px;margin-top:4px">Simulated on a fork of the live chain first. The wallet runs every call below as your account in one atomic batch: all of them land, or none do.</div>
+      <div class="kv"><b>Calls</b><span>${p.batch.length}</span><b>Gas (simulated)</b><span>${gas.toLocaleString()}</span><b>From</b><span>${addrLink(S.account, vb)}</span><b>Value</b><span>0 · no funds leave the wallet</span></div>
+      <details class="cd" open><summary>Every call in the batch</summary><div class="data" style="white-space:normal">${p.batch.map((c, i) => `${i + 1}. ${esc(c.label || "")} <span class="muted">→ ${esc(short(c.to))}</span>`).join("<br>")}</div></details>
+      <div class="btns">${!wallet ? (providers.length ? providers.map((w, i) => `<button class="btn" data-wallet="${i}">${w.info.icon ? `<img src="${esc(w.info.icon)}" alt="">` : ""}Reconnect ${esc(w.info.name)} to sign</button>`).join("") : '<span class="bad">No browser wallet found. Unlock Rabby or MetaMask and reload.</span>') : `<button class="btn" id="signBtn" ${busy || sentIds.has(p.id) ? "disabled" : ""}>Sign all ${p.batch.length} in ${esc(wallet.info.name)}</button>`}
+        <span class="${sendMsg ? sendMsg.cls : "muted"}" style="font-size:13px">${esc(sendMsg ? sendMsg.text : "Check the call count and your account in the wallet before you confirm.")}</span></div></div>`;
+  }
+  function signCard(vb, step, p){
+    if (p.batch) return batchCard(vb, p);
+    const a = step.actions.find(x => x.index === p.actionIndex) || {};
+    const val = BigInt(p.tx.value || "0x0"), args = Object.entries(a.args || {});
+    const f = preflight.fees, feeWarn = step.name === "01_clone" && f && !f.error && !f.isCustom
+      ? `<div class="note warn" style="margin:0 0 14px"><b>No custom DAO fee package for this deployer.</b> The vault will be created with the factory's default package #${esc(vb.feePackageIndex ?? 0)}, fixed for its lifetime. If a custom package was agreed, do not sign: stop the run with Ctrl+C and have the DAO set it first.</div>` : "";
+    return `<div class="sign">${feeWarn}<div class="eyebrow">Signature ${vb.signed + 1} of ${vb.total || "?"} in ${esc(stageName(stageOf(vb.stageId || curStageId())))} · waiting for you</div>
+      <h3>${esc(a.action || p.label)}${a.key ? ` · ${esc(keyLabel(a.key))}` : ""}${p.optional ? ' <span class="chip" style="vertical-align:2px">optional</span>' : ""}</h3>
+      ${p.optional ? '<div class="muted" style="font-size:13px;margin-top:4px">An optional role: sign it now, or skip it and grant it later. The run continues either way.</div>' : ""}
+      <div class="kv"><b>Contract</b><span>${addrLink(p.tx.to, vb)}</span><b>Function</b><span class="mono">${esc(a.function || "see calldata")}</span>
+        ${args.length ? `<b>Arguments</b><span style="font-size:13px">${args.map(([k, x]) => `<span class="muted">${esc(k)}</span> ${fmt(x, vb)}`).join("<br>")}</span>` : ""}
+        <b>From</b><span>${addrLink(p.tx.from || S.account, vb)}</span><b>Value</b><span>${val === 0n ? "0 · no funds leave the wallet" : (Number(val) / 1e18) + " native"}</span>
+        <b>Gas limit</b><span>${parseInt(p.tx.gas, 16).toLocaleString()} <span class="muted">· estimated, revert check passed</span></span></div>
+      ${p.subcalls && p.subcalls.length ? `<details class="cd" open><summary>This transaction carries ${p.subcalls.length} calls (AccessManager checks your role for each, all or nothing)</summary><div class="data" style="white-space:normal">${p.subcalls.map((l, i) => `${i + 1}. ${esc(l)}`).join("<br>")}</div></details>` : ""}
+      <details class="cd"><summary>Raw calldata, ${(p.tx.data.length - 2) / 2} bytes · compare the first bytes with the wallet</summary><div class="data">${esc(p.tx.data)}</div></details>
+      <div class="btns">${!wallet ? (providers.length ? providers.map((w, i) => `<button class="btn" data-wallet="${i}">${w.info.icon ? `<img src="${esc(w.info.icon)}" alt="">` : ""}Reconnect ${esc(w.info.name)} to sign</button>`).join("") : '<span class="bad">No browser wallet found. Unlock Rabby or MetaMask and reload.</span>')
+        : `<button class="btn" id="signBtn" ${busy || sentIds.has(p.id) ? "disabled" : ""}>${wallet.info.icon ? `<img src="${esc(wallet.info.icon)}" alt="">` : ""}Sign in ${esc(wallet.info.name)}</button>`}
+        ${p.optional ? `<button class="btn sec" id="skipBtn" ${busy || sentIds.has(p.id) ? "disabled" : ""} title="Optional role: the run continues without it, and you can grant it later">Skip this role</button>` : ""}
+        <button class="btn sec" id="rejectBtn" ${busy || sentIds.has(p.id) ? "disabled" : ""}>Reject</button>
+        <span class="${sendMsg ? sendMsg.cls : "muted"}" style="font-size:13px">${esc(sendMsg ? sendMsg.text : wallet ? "Check contract and function in the wallet before you confirm." : "The page was reloaded; reconnect the wallet to continue.")}</span></div></div>`;
+  }
+  async function sign(){
+    const p = S && S.pending; if (!p || busy || !wallet || sentIds.has(p.id)) return;
+    if (!(await walletOnFork())) {
+      // never hand a fork transaction to a wallet that would broadcast it on the live chain
+      sendMsg = {cls:"bad", text:"Not sent: the wallet is not on the fork, so this would go to the LIVE chain. Set the wallet's RPC to " + (S.board.forkRpc || "the fork URL") + ", then click Sign."};
+      await report(); return;
+    }
+    busy = true; follow = true; sentIds.add(p.id); sendMsg = {cls:"muted", text:"Confirm in " + wallet.info.name + "…"}; render();
+    if (p.batch) return signBatch(p);
+    try {
+      const hash = await wallet.provider.request({method:"eth_sendTransaction", params:[{from: account, to: p.tx.to, data: p.tx.data, value: p.tx.value, gas: p.tx.gas}]});
+      await post("/api/result", {id: p.id, hash});
+      sendMsg = {cls:"ok", text:"Sent " + short(hash) + " · waiting for the block"};
+    } catch (e) {
+      // Nothing reached the chain: keep the transaction waiting so the operator can sign again.
+      // Only the page's Reject button stops the run.
+      const msg = (e && (e.message || String(e))) || "rejected";
+      sentIds.delete(p.id);
+      busy = false; sendMsg = {cls:"bad", text:"Not signed in the wallet (" + msg + "). Click Sign to try again, or Reject to stop the run."}; render();
+      return;
+    }
+    busy = false; render();
+    setTimeout(() => { sendMsg = null; render(); }, 6000);
+  }
+  async function signBatch(p){
+    const hex = "0x" + S.chainId.toString(16);
+    try {
+      const res = await wallet.provider.request({method:"wallet_sendCalls", params:[{version:"2.0.0", from: account, chainId: hex,
+        atomicRequired: true, calls: p.batch.map(c => ({to: c.to, data: c.data, value: c.value || "0x0"}))}]});
+      const id = typeof res === "string" ? res : res.id;
+      sendMsg = {cls:"muted", text:"Batch submitted · waiting for the block"}; render();
+      let hashes = null;
+      for (let i = 0; i < 900 && !hashes; i++) {
+        await new Promise(r => setTimeout(r, 1500));
+        const st = await wallet.provider.request({method:"wallet_getCallsStatus", params:[id]});
+        const code = st && st.status;
+        if (code === 200 || code === "CONFIRMED") hashes = (st.receipts || []).map(r => r.transactionHash);
+        else if ((typeof code === "number" && code >= 400) || code === "FAILED") throw new Error("the wallet reports the batch failed (status " + code + "); nothing in it took effect");
+      }
+      if (!hashes || !hashes.length) throw new Error("no receipt for the batch from the wallet");
+      await post("/api/result", {id: p.id, hash: hashes[hashes.length - 1], hashes});
+      sendMsg = {cls:"ok", text:"Batch mined in " + hashes.length + " transaction(s)"};
+    } catch (e) {
+      const msg = (e && (e.message || String(e))) || "rejected";
+      sentIds.delete(p.id);
+      busy = false; sendMsg = {cls:"bad", text:"Not signed (" + msg + "). Click Sign to try again."}; render();
+      return;
+    }
+    busy = false; render();
+  }
+  async function skip(){
+    const p = S && S.pending; if (!p || busy || sentIds.has(p.id) || !p.optional) return;
+    busy = true; follow = true; sentIds.add(p.id); render();
+    const r = await post("/api/result", {id: p.id, skip: true});
+    busy = false; sendMsg = r.ok ? {cls:"muted", text:"Skipped. The run continues with the next transaction."} : {cls:"bad", text:"This transaction cannot be skipped."}; render();
+    setTimeout(() => { sendMsg = null; render(); }, 5000);
+  }
+  function reject(){
+    // Rejecting never ends the run: the transaction keeps waiting until it is signed.
+    const p = S && S.pending; if (!p || busy || sentIds.has(p.id)) return;
+    sendMsg = {cls:"bad", text:"Rejected, nothing sent. The transaction keeps waiting: click Sign when ready. To stop the run, press Ctrl+C in the terminal."}; render();
+  }
+
+  function verifyView(vb){
+    const o = vb.outcome, link = vb.kind === "link";
+    let h = `<div class="eyebrow">${link ? "After the signature" : "After the last signature"}</div><div class="step-head"><h2>${link ? "Connection done" : "Verify & finish"}</h2>
+      <span class="chip ${o ? (o.ok ? "done" : "failed") : ""}">${o ? (o.ok ? (link ? "Connected" : "Verified") : o.failed_step ? "Stopped" : "Checks failed") : "Ahead"}</span></div>
+      <p class="desc">${link ? "The child vault now accepts deposits from the parent vault." : "The pipeline reads the new vault's own contracts back and compares them with the strategy file. Nothing to sign here."}</p>`;
+    if (!o) return h + `<div class="preparing"><span class="spin"></span><div><b>Reading the vault back…</b><span class="m">Read-only calls.</span></div></div>`;
+    if (o.failed_step) h += `<div class="note bad"><b>The run stopped in ${esc((STEP_INFO[o.failed_step] || [o.failed_step])[0])}.</b> ${esc(o.error)}<br>Run the same command again to resume. State: <span class="mono">${esc(o.state_file)}</span></div>`;
+    if (o.link) h += `<div class="note ok">WHITELIST_ROLE granted to ${addrLink(o.link.parent, vb)} on ${addrLink(o.link.child_access_manager, vb)}${o.link.tx_hash ? " · " + txLink(o.link.tx_hash) : " (already granted)"}.</div>`;
+    const v = o.verification;
+    if (v) {
+      h += `<div class="note ${v.fail.length ? "bad" : "ok"}"><b>${v.ok.length} checks passed · ${v.warn.length} warning${v.warn.length === 1 ? "" : "s"} · ${v.fail.length} failed</b></div>`;
+      if (v.fail.length) h += `<ul class="list">${v.fail.map(x => `<li class="bad">✕ ${esc(x)}</li>`).join("")}</ul>`;
+      if (v.warn.length) h += `<ul class="list">${v.warn.map(x => `<li class="warn">! ${esc(x)}</li>`).join("")}</ul>`;
+      h += `<details class="cd"><summary>Passed checks (${v.ok.length})</summary><ul class="list">${v.ok.map(x => `<li>✓ ${esc(x)}</li>`).join("")}</ul></details>`;
+    }
+    const inst = vb.instance || {}, keys = link ? [] : Object.keys(inst).filter(k => isAddr(inst[k]));
+    if (keys.length) h += `<h3 style="font-size:14px;font-weight:600;margin:20px 0 4px">Deployed contracts</h3><ul class="list">${keys.map(k => `<li>${addrLink(inst[k], vb)}</li>`).join("")}</ul>`;
+    if (o.state_file) h += `<div class="note">State file <span class="mono">${esc(o.state_file)}</span>${o.run_artifact ? `<br>Run record <span class="mono">${esc(o.run_artifact)}</span>` : ""}</div>`;
+    return h;
+  }
+
+  poll();
+})();
+</script>
+</body>
+</html>

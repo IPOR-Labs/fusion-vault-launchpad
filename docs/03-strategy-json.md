@@ -50,7 +50,7 @@ Before a **live** broadcast, `deploy/guards.py` additionally refuses any configu
 | Key | Notes |
 |---|---|
 | `id` | numeric chain id (1, 8453, …) |
-| `context` | file stem under `contexts/`. Shipped: `mainnet-ethereum-fusion`, `base-fusion`. |
+| `context` | file stem under `contexts/`. Shipped: `mainnet-ethereum-fusion`, `base-fusion`, `arbitrum-fusion`, `hyperevm-fusion`. |
 
 ### `vault`
 
@@ -192,21 +192,36 @@ For an instant-only vault also add a `PauseFunctionPreHook` on `request(uint256)
 | `state_file` | `.deploy-state/<name>.json` |
 | `broadcast`, `max_priority_fee_wei`, `tx_confirmations` | informational |
 
-## 4. Chain contexts: `contexts/<ctx>.json`
+## 4. Chain contexts
 
-Schema: `schema/deploy-context.schema.json`.
+`chain.context` (e.g. `base-fusion`) selects the vendored ipor-abi snapshot `contexts/ipor-abi/mainnet-<context>.json`, a copy of ipor-abi's `mainnet/<deployment>/addresses.json` pinned to an ipor-abi commit. Every IPOR contract address comes from there; nothing is hand-copied:
+
+| Contract | Looked up as |
+|---|---|
+| FusionFactory, oracle middleware, FuseWhitelist | `IporFusionFactoryProxy`, `PriceOracleMiddlewareUsdWithRolesProxy`, `IporFusionFuseWhitelistProxy` (same keys on every chain) |
+| Standard (factory-injected) fuses | `BurnRequestFeeFuse`, `BurnRequestFeeFuseV2`, oldest first, those the chain lists |
+| Price-feed factories | `<name>Proxy`, e.g. `ERC4626PriceFeedFactory` → `ERC4626PriceFeedFactoryProxy` |
+| Pre-hooks, callback handlers | the name itself (`ExchangeRateValidatorPreHook`, `CallbackHandlerMorpho`); the legacy names `PauseFunctionPreHook`, `UpdateBalancesPreHook`, `UpdateBalancesIgnoreDustPreHook` map to `PreHook…` keys |
+| Fuses | the `FuseWhitelist` decides (below); ipor-abi under the same name, or an alias, is the fallback and cross-check |
+| `morpho_blue`, `middleware_owner` (fork impersonation only) | `Morpho`, `IporFusionPriceOracleMiddlewareWithRolesOwner` |
+
+`contexts/<ctx>.json` is **optional** (schema `schema/deploy-context.schema.json`) and holds only what cannot be derived:
 
 | Key | Content |
 |---|---|
-| `chain_id`, `ipor_abi_deployment` | e.g. `8453`, `mainnet-base-fusion` (the folder name in `ipor-abi`) |
 | `public_rpc` | read-only public endpoint used by dry-runs when `RPC_URL` is unset |
-| `middleware_owner` | holder of the manager role on the shared middleware; used only to impersonate on a fork, nullable |
-| `fusion_factory`, `price_oracle_middleware`, `fuse_whitelist` | proxy addresses |
-| `standard_fuses[]` | factory-injected fuses, **oldest → newest** |
-| `price_feed_factories{}`, `fuses{}`, `pre_hooks{}`, `callback_handlers{}` | name → address (`callback_handlers`: `CallbackHandlerMorpho`, `CallbackHandlerEuler…`) |
-| `markets{}` | market name → id overrides (else the SDK's `IporFusionMarkets`) |
-| `morpho_blue`, `aave_v3_pool`, `tokens{}`, `morpho_oracles{}` | convenience |
+| `pins{}` | a fuse or pre-hook pinned to one address, with `reason`, `checked` (date) and optional `revisit`; only when several versions are active or ipor-abi lacks the contract |
+| `aliases{}` | a name strategies use → the ipor-abi key, when the name is neither a `FuseWhitelist` type nor an ipor-abi key (e.g. `MorphoFlashLoanBalanceFuse` → `BalanceFuseFlashLoanMorpho`) |
+| `external_addresses{}` | third-party contracts ipor-abi does not list, with their `source` (e.g. the Aave V3 pool) |
+| `tokens{}` | token symbol → address, for symbols a strategy uses (e.g. a rehearsal token holder) |
+| `markets{}` | market ids the SDK's `IporFusionMarkets` does not know (e.g. `HYPERCORE` on HyperEVM) |
+| `contracts{}`, `standard_fuses[]`, `chain_id`, `ipor_abi_deployment` | rare overrides when a chain differs from the defaults above |
 
-The context is a **cache** of `ipor-abi` and the on-chain whitelist. It lags. Before relying on it for a new strategy, call `getFusesByMarketId` on the chain's `FuseWhitelist` for every market you use and add any whitelisted fuse that is missing (name it as the `ipor-abi` README does). Never substitute a different fuse because the one you need is missing from the context.
+How a run resolves addresses, before any step:
 
-Adding a chain = adding a context file with addresses from `ipor-abi/mainnet/<deployment>/addresses.json`. Always use `…Proxy` addresses.
+1. **Fuses** (`deploy/fuse_resolver.py`): the `FuseWhitelist` gives the active address for the fuse type on its market. A pin must be among the active addresses, or the run fails. Without a pin: one active address wins; several need a pin (the ipor-abi entry is used with a warning when it is one of them); none falls back to ipor-abi with a warning, and the whitelist gate decides. The report names each chosen address's ipor-abi key, or says it is not in ipor-abi.
+2. **Everything else** (`deploy/address_book.py`): the chain id must match; roots, the pre-hooks and callback handlers the strategy names, feed factories and external addresses must have code; `factory.getPriceOracleMiddleware()` must equal ipor-abi's middleware; the Aave pool must equal `AaveV3PoolAddressesProvider.getPool()`. Warnings: the newest standard fuse is not active, a token's `symbol()` differs, the snapshot is older than 45 days. ipor-abi entries at the zero address mean "not on this chain".
+
+`make check-context CONTEXT=<ctx>` (or `python tools/check_context.py --all`) prints the full table without a strategy. `make ipor-abi` refreshes the snapshots from ipor-abi `main` and prints every added, removed or changed key; review that diff before committing it, because a changed key moves every vault deployed afterwards to the new contract.
+
+Adding a chain = a context file with its `public_rpc`, then `make ipor-abi` (vendors `mainnet-<context>`) and `make check-context CONTEXT=<context>`.

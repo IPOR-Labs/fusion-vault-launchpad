@@ -6,17 +6,13 @@ This repository does not depend on any particular AI product. Every step is a pl
 
 | Tool | Reads automatically | Provided in this repo |
 |---|---|---|
-| OpenAI Codex (CLI and cloud) | `AGENTS.md` | `AGENTS.md` |
+| OpenAI Codex (CLI and cloud), Cursor, GitHub Copilot (agent mode, coding agent), Windsurf, xAI Grok CLI | `AGENTS.md` | `AGENTS.md` |
 | Claude Code | `CLAUDE.md` | `CLAUDE.md`, which imports `AGENTS.md` |
 | Google Gemini CLI | `GEMINI.md` | `GEMINI.md` → points to `AGENTS.md` |
-| Cursor | `.cursor/rules/*.mdc`, also `AGENTS.md` in recent versions | `.cursor/rules/agents.mdc` → points to `AGENTS.md` |
-| GitHub Copilot (agent mode, coding agent) | `.github/copilot-instructions.md` | provided → points to `AGENTS.md` |
-| Windsurf | `.windsurf/rules/*.md` | `.windsurf/rules/agents.md` → points to `AGENTS.md` |
-| xAI Grok (grok-cli) | `.grok/GROK.md` | `.grok/GROK.md` → points to `AGENTS.md` |
-| Aider | `CONVENTIONS.md` when passed with `--read` | `CONVENTIONS.md` → points to `AGENTS.md` |
+| Aider | files passed with `--read` | run `aider --read AGENTS.md` |
 | Anything else, or a chat interface without file access | nothing | paste `AGENTS.md` into the conversation, or use the prompt below |
 
-The pointer files are one paragraph each and say the same thing: read `AGENTS.md` first. If your tool is not listed, tell the agent to read `AGENTS.md`; that is all it needs.
+`CLAUDE.md` and `GEMINI.md` exist only because those two tools look for their own file name; each one says: read `AGENTS.md` first. If your tool is not listed, tell the agent to read `AGENTS.md`; that is all it needs.
 
 ## 2. A prompt to start any agent
 

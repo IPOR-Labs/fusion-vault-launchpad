@@ -1,23 +1,24 @@
 """Resolve fuse names to addresses from the on-chain FuseWhitelist.
 
 The whitelist is the authority for which fuse address is current for a given
-(fuse type, market). The deploy-context `fuses{}` map is only a hand-maintained
-cache and goes stale whenever IPOR ships a new fuse version (observed on
-Arbitrum 2026-09-25: ipor-abi and the context listed a `deprecated` ERC4626
-supply fuse while the whitelist carried the `active` successor). So before any
-step runs, every fuse the strategy names is resolved here:
+(fuse type, market). The ipor-abi entry named in the deploy context is a
+snapshot of ipor-abi and lags whenever IPOR ships a new fuse version (observed on
+Arbitrum 2026-09-25: ipor-abi listed a `deprecated` ERC4626 supply fuse while the
+whitelist carried the `active` successor). So before any step runs, every fuse
+the strategy names is resolved here:
 
   1. name -> whitelist fuse type: the name is a whitelist type name
-     (`EulerV2SupplyFuse`, `ERC20BalanceFuse`, ...), or a context key whose
-     address the whitelist knows (its type is read from `getFuseByAddress`).
+     (`EulerV2SupplyFuse`, `ERC20BalanceFuse`, ...), or a context name whose
+     pinned or ipor-abi address the whitelist knows (type from `getFuseByAddress`).
   2. type + market -> `getFusesByTypeAndMarketIdAndStatus(type, market, active)`.
      The market is `balance_fuses[].market` for balance fuses, `fuses[].market`
      when given, otherwise inferred: the type must resolve in exactly one of
      the markets the strategy declares balance fuses for.
-  3. exactly one active address -> use it (and warn when the context disagrees);
-     several -> the context address if it is one of them, else an error naming
-     them; none -> the context address with a warning (the whitelist gate in
-     `deploy/whitelist.py` still decides whether it may be added).
+  3. a pin must be among the active addresses (else fail: the pin went stale);
+     without a pin: exactly one active address -> use it (warn when ipor-abi
+     disagrees); several -> the ipor-abi address if it is one of them (warn), else
+     fail and ask for a pin; none -> the ipor-abi address with a warning (the
+     whitelist gate in `deploy/whitelist.py` still decides whether it may be added).
 
 Pure logic (`resolve_refs`) is SDK-free and unit-tested; `WhitelistIndex` does
 the eth_calls. `apply_whitelist_resolution` wires both into the DeployContext
@@ -94,29 +95,38 @@ def config_refs(cfg_raw: dict) -> list[FuseRef]:
     return list(refs.values())
 
 
-def resolve_refs(refs: list[FuseRef], index, context_fuses: dict[str, str], market_id_of,
-                 declared_markets: list[str]) -> Resolution:
+def resolve_refs(refs: list[FuseRef], index, registry: dict[str, str | None], market_id_of,
+                 declared_markets: list[str], pins: dict[str, str] | None = None, known_as=None) -> Resolution:
     """Pure resolution over an index with `type_id(name)`, `type_of_address(addr)`, `active(type, market)`.
 
+    `registry` maps a fuse name to its ipor-abi address (None when ipor-abi has no entry);
+    `pins` maps a fuse name to the address the context pins, with a reason, over the registries.
     `market_id_of(name) -> int` maps market names; `declared_markets` are the balance-fuse markets
-    used for inference. Returns overrides for every name that resolved on the whitelist."""
+    used for inference. `known_as(addr) -> [ipor-abi keys]` names a chosen address in the report.
+    Returns overrides for every name that resolved on the whitelist."""
+    pins = pins or {}
+    known_as = known_as or (lambda _a: [])
     res = Resolution()
     for ref in refs:
-        ctx_addr = context_fuses.get(ref.name)
-        ctx_cs = Web3.to_checksum_address(ctx_addr) if ctx_addr else None
+        reg = registry.get(ref.name)
+        reg_cs = Web3.to_checksum_address(reg) if reg else None
+        pin_cs = Web3.to_checksum_address(pins[ref.name]) if pins.get(ref.name) else None
+        probe = pin_cs or reg_cs
         # 1. name -> type
         tid = index.type_id(ref.name)
         via = "type name"
-        if tid is None and ctx_cs:
-            known = index.type_of_address(ctx_cs)
+        if tid is None and probe:
+            known = index.type_of_address(probe)
             if known:
                 tid = known[1]
-                via = f"type of context address {ctx_cs}"
+                via = f"type of {'pinned' if pin_cs else 'ipor-abi'} address {probe}"
         if tid is None:
-            if ctx_cs:
-                res.warns.append(f"{ref.name}: not a whitelist type name and the context address {ctx_cs} is not listed — using the context address; the whitelist gate decides. Prefer naming the fuse by its whitelist type (getFuseTypes) plus \"market\"")
-                continue
-            res.fails.append(f"{ref.name}: unknown — neither a FuseWhitelist type name nor a key in the context 'fuses' map")
+            if pin_cs:
+                res.fails.append(f"{ref.name}: pinned address {pin_cs} is not on the FuseWhitelist")
+            elif reg_cs:
+                res.warns.append(f"{ref.name}: not a whitelist type name and the ipor-abi address {reg_cs} is not listed — using ipor-abi; the whitelist gate decides. Prefer naming the fuse by its whitelist type (getFuseTypes) plus \"market\"")
+            else:
+                res.fails.append(f"{ref.name}: unknown — not a FuseWhitelist type name, not in ipor-abi and not pinned in the context")
             continue
         # 2. type + market -> active addresses
         if ref.market:
@@ -129,25 +139,38 @@ def resolve_refs(refs: list[FuseRef], index, context_fuses: dict[str, str], mark
                 continue
         hits = next(iter(candidates.values()), []) if candidates else []
         market = next(iter(candidates)) if candidates else (ref.market or "?")
-        # 3. pick
-        if len(hits) == 1:
+        lowered = {h.lower() for h in hits}
+        # 3. pick: a pin must still be active; otherwise one active fuse, or ipor-abi among several
+        if pin_cs:
+            if pin_cs.lower() not in lowered:
+                active = ", ".join(hits) if hits else "none"
+                res.fails.append(f"{ref.name}: pinned {pin_cs} is no longer active on {market} (active: {active}) — update or drop the pin")
+                continue
+            chosen = pin_cs
+            if len(hits) > 1:
+                res.notes.append(f"{ref.name}: {len(hits)} active on {market}; using the pin {pin_cs}")
+        elif len(hits) == 1:
             chosen = hits[0]
         elif len(hits) > 1:
-            if ctx_cs and ctx_cs.lower() in {h.lower() for h in hits}:
-                chosen = ctx_cs
-                res.notes.append(f"{ref.name}: {len(hits)} active on {market}; keeping the context's {ctx_cs}")
+            if reg_cs and reg_cs.lower() in lowered:
+                chosen = reg_cs
+                res.warns.append(f"{ref.name}: {len(hits)} active on {market} ({', '.join(hits)}); using the ipor-abi entry {reg_cs} — pin one in the context to make the choice explicit")
             else:
-                res.fails.append(f"{ref.name}: {len(hits)} active fuses of this type on {market} ({', '.join(hits)}) — pin one in the context 'fuses' map")
+                res.fails.append(f"{ref.name}: {len(hits)} active fuses of this type on {market} ({', '.join(hits)}) — pin one in the context 'pins' map")
                 continue
         else:
-            if ctx_cs:
-                res.warns.append(f"{ref.name}: no active fuse of this type on {market} — using the context address {ctx_cs}; the whitelist gate decides")
+            if reg_cs:
+                res.warns.append(f"{ref.name}: no active fuse of this type on {market} — using the ipor-abi address {reg_cs}; the whitelist gate decides")
             else:
-                res.fails.append(f"{ref.name}: no active fuse of this type on {market} and no context address to fall back on")
+                res.fails.append(f"{ref.name}: no active fuse of this type on {market}, not in ipor-abi and not pinned")
             continue
         res.overrides[ref.name] = chosen
-        if ctx_cs and ctx_cs.lower() != chosen.lower():
-            res.warns.append(f"{ref.name}: context has {ctx_cs} but the whitelist's active fuse on {market} is {chosen} — using the whitelist (update the context)")
+        if reg_cs and reg_cs.lower() != chosen.lower():
+            res.warns.append(f"{ref.name}: ipor-abi has {reg_cs} but {'the pin' if pin_cs else 'the whitelist'} gives {chosen} on {market} — ipor-abi lags or the pin is deliberate")
+        elif not reg_cs:
+            keys = known_as(chosen)
+            res.notes.append(f"{ref.name}: in ipor-abi as {', '.join(keys)}" if keys
+                             else f"{ref.name}: not in ipor-abi (resolved on the whitelist only)")
         res.notes.append(f"{ref.name} [{via}] market={market} -> {chosen}")
     return res
 
@@ -156,7 +179,9 @@ def apply_whitelist_resolution(cfg_raw: dict, deploy_ctx, w3, log=print) -> Reso
     """Resolve every fuse the strategy names and install the results as context overrides."""
     index = WhitelistIndex(w3, deploy_ctx.fuse_whitelist)
     declared = sorted({bf["market"] for bf in cfg_raw.get("balance_fuses", [])})
-    res = resolve_refs(config_refs(cfg_raw), index, deploy_ctx.raw.get("fuses", {}), deploy_ctx.market_id, declared)
+    registry = {r.name: deploy_ctx.registry_fuse(r.name) for r in config_refs(cfg_raw)}
+    res = resolve_refs(config_refs(cfg_raw), index, registry, deploy_ctx.market_id, declared, deploy_ctx.pins(),
+                       known_as=deploy_ctx.snapshot.keys_for)
     log(f"[fuse_resolver] FuseWhitelist @ {index.whitelist}: {len(res.overrides)} of {len(config_refs(cfg_raw))} fuse names resolved on-chain")
     for n in res.notes:
         log(f"    resolve  {n}")

@@ -22,7 +22,7 @@ Symptoms first, then cause and fix.
 
 | Symptom | Cause | Fix |
 |---|---|---|
-| `FileNotFoundError: …/contexts/<name>.json` | `chain.context` does not match a file stem | shipped: `mainnet-ethereum-fusion`, `base-fusion` |
+| `FileNotFoundError: …/contexts/<name>.json` | `chain.context` does not match a file stem | shipped: `mainnet-ethereum-fusion`, `base-fusion`, `arbitrum-fusion`, `hyperevm-fusion` |
 | `fuse '<Name>' missing from context '<ctx>'` | the context cache lags the on-chain whitelist, or a misspelling | confirm with `getFusesByMarketId`; add the fuse to the context; do **not** substitute another fuse |
 | `underlying <addr> missing from price_feeds` | loader rule | add a `prebuilt` / `literal` / factory entry for the underlying |
 | `fees.recipients split_bps must sum to 10000` | arithmetic | fix the splits |

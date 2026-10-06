@@ -80,7 +80,7 @@ To deploy your own vault:
 ```
 deploy/            the pipeline: cli.py (entry), config, context, sdk_session, guards, steps/, encoders/, verification
 schema/            JSON schemas for strategies and chain contexts
-contexts/          per-chain address books (FusionFactory, fuses, feed factories, pre-hooks); a cache of public on-chain data
+contexts/          vendored ipor-abi snapshots (contexts/ipor-abi/) and optional per-chain overrides (public RPC, pins, tokens)
 strategies/        your strategy specs (.json machine spec + .md human spec); two shipped examples
 rehearsals/        per-strategy rehearsal scripts: the SDK fuse actions the fork rehearsal executes
 templates/         the human spec template
@@ -95,7 +95,7 @@ docs/              the manual
 
 This repository covers **creating, configuring, verifying and rehearsing** a vault, and it helps the agent **harden** it for production ([`docs/10-hardening.md`](./docs/10-hardening.md): role handover to multisigs, execution delays, fee recipients, market limits; the deployer's renounce and the one-way switches stay manual). Operating the strategy day to day (the "Alpha" that moves funds) and monitoring are outside its scope; pointers are in [`docs/07-resources.md`](./docs/07-resources.md).
 
-Pointer files for agent tools (`CLAUDE.md`, `GEMINI.md`, `CONVENTIONS.md`, `.cursor/`, `.windsurf/`, `.grok/`, `.github/copilot-instructions.md`) all say one thing: read `AGENTS.md`.
+Agent tools read `AGENTS.md` directly; `CLAUDE.md` and `GEMINI.md` exist for the two tools that look for their own file name, and both say one thing: read `AGENTS.md`.
 
 ## Contributing and license
 

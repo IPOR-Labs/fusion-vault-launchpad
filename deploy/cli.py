@@ -26,6 +26,7 @@ if str(ROOT) not in sys.path:
 from deploy.config import load_strategy
 from deploy.context import load_context
 from deploy.fuse_resolver import apply_whitelist_resolution
+from deploy.address_book import check_context_addresses
 from deploy.browser_signer import load_plan
 from deploy.guards import live_broadcast_problems, warn_public_rpc
 from deploy.sdk_session import open_session
@@ -217,7 +218,7 @@ def _signer_meta(cfg, deploy_ctx, state_path: Path, force_restart: bool = False)
 
 def _signer_meta_base(cfg, state_path: Path, force_restart: bool = False, deploy_ctx=None) -> dict:
     """The page metadata without the plan (the campaign runner brings its own plans)."""
-    deploy_ctx = deploy_ctx or load_context(cfg.context_name)
+    deploy_ctx = deploy_ctx or load_context(cfg.context_name, chain_id=cfg.chain_id)
     earlier: dict[str, list[str]] = {}
     if state_path.exists() and not force_restart:
         try:
@@ -247,7 +248,7 @@ def main(argv=None, *, shared_signer=None, signer_meta=None):
     if args.broadcast:
         warn_public_rpc(os.environ.get("RPC_URL", ""))
     cfg = load_strategy(args.strategy_json)
-    deploy_ctx = load_context(cfg.context_name)
+    deploy_ctx = load_context(cfg.context_name, chain_id=cfg.chain_id)
     # DEPLOY_STATE_PATH: the batch simulation keeps its fork state away from the real state file
     state_path = Path(os.environ["DEPLOY_STATE_PATH"]) if os.environ.get("DEPLOY_STATE_PATH") else ROOT / cfg.state_file
     browser = args.signer == "browser" and args.broadcast
@@ -278,8 +279,12 @@ def main(argv=None, *, shared_signer=None, signer_meta=None):
         if problems:
             sys.exit("Refusing to broadcast to a live chain:\n  - " + "\n  - ".join(problems))
 
-    # The FuseWhitelist, not the context file, decides which fuse address is current.
+    # The FuseWhitelist decides which fuse address is current; ipor-abi supplies and cross-checks the rest.
     apply_whitelist_resolution(cfg.raw, deploy_ctx, session.ctx.web3)
+    try:
+        check_context_addresses(deploy_ctx, session.ctx.web3, cfg_raw=cfg.raw)
+    except RuntimeError as e:
+        sys.exit(str(e))
 
     state = load_state(state_path, cfg.raw, force_restart=args.force_restart)
     # Resume only a vault this chain really has: the recorded clone must be mined here and the

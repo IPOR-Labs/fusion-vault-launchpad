@@ -1,4 +1,3 @@
-# Test/dev dependencies. The unit suite under tests/ is SDK-free (no chain, no
-# ipor-fusion import), so CI can run these alone.
+# Test/dev dependencies; CI installs exactly this file. The unit suite needs no chain and no key.
 -r requirements.txt
 pytest==9.1.1

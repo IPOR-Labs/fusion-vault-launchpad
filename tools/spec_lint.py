@@ -106,8 +106,8 @@ def lint(json_path: Path, md_path: Path) -> int:
     # include chain-context addresses (fuses/factories/middleware) as legitimate
     try:
         from deploy.context import load_context
-        ctx = load_context(cfg["chain"]["context"])
-        known |= _collect_json_addresses(ctx.raw)
+        ctx = load_context(cfg["chain"]["context"], chain_id=cfg["chain"].get("id"))
+        known |= ctx.known_addresses()
     except Exception as e:  # context is a best-effort enrichment for the WARN set
         warns.append(f"could not load chain context for cross-check: {e!r}")
 

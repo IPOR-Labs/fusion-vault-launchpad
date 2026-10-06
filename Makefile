@@ -59,5 +59,11 @@ diff: ## compare the dry-run plan with the last broadcast run
 verify: ## re-read the chain against the JSON using the recorded state (uses RPC_URL from .env)
 	$(PY) -m deploy $(STRATEGY) --verify-only
 
+ipor-abi: ## refresh the vendored ipor-abi snapshots in contexts/ipor-abi/ and print what changed (REF=<sha> to pin)
+	$(PY) tools/refresh_ipor_abi.py $(if $(REF),--ref $(REF),)
+
+check-context: ## check every address CONTEXT resolves (ipor-abi snapshot, pins, externals, tokens) against the chain; RPC_URL or the context's public_rpc
+	$(PY) tools/check_context.py $(CONTEXT)
+
 clean-state: ## delete the rehearsal state for STRATEGY (never do this after a live run)
 	rm -f .deploy-state/$(NAME).json .deploy-state/$(NAME).run.json

@@ -46,8 +46,6 @@ htmlcov/
 
 # ---------------------------------------------------------------------------
 # IDEs and editors
-# Note: .cursor/rules, .windsurf/rules, .grok/ and .github/copilot-instructions.md
-# are tracked on purpose (agent instructions); do not ignore them.
 # ---------------------------------------------------------------------------
 # JetBrains (PyCharm, IntelliJ)
 .idea/

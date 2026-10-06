@@ -17,6 +17,8 @@ Turn the human's intent into a schema-valid strategy file, prove on a dry-run an
 
 If you resume work on an existing strategy, also read `strategies/<name>.json`, `strategies/<name>.md`, and `.deploy-state/<name>.json` if it exists.
 
+Everything else in the repository, and the public sources outside it, is listed in section 10.
+
 ## 3. Private key and RPC: the rules
 
 | Situation | What you do |
@@ -34,7 +36,7 @@ You never print the contents of `.env`, never commit it, and never copy the key 
 ## 4. Operating rules
 
 1. **English for every artifact.** Talk to the human in their language; write specs, JSON, reports and commit messages in English.
-2. **Never invent on-chain facts.** Fuse addresses, market ids, whitelist status, role holders, prices, feed addresses: read them from the chain, from `contexts/<chain>.json`, or from the public sources in `docs/07-resources.md`. When you cannot verify something, write `unverified` and say what would verify it.
+2. **Never invent on-chain facts.** Fuse addresses, market ids, whitelist status, role holders, prices, feed addresses: read them from the chain (the FuseWhitelist), from the ipor-abi snapshot a context names (`contexts/ipor-abi/`), or from the public sources in `docs/07-resources.md`. When you cannot verify something, write `unverified` and say what would verify it.
 3. **Ask the human only what only the human knows.** Intent, chain, asset, venues, addresses, risk appetite, fees, whitelist and transferability choices. Resolve everything else yourself and show a short confirmation summary.
 4. **One question at a time, with a recommended default marked as such.** Always accept a custom value.
 5. **Persist as you go.** After every stage, write the answers into `strategies/<name>.md` and `.json`. Never hold state only in the conversation. Edit specs; do not overwrite them wholesale.
@@ -42,7 +44,7 @@ You never print the contents of `.env`, never commit it, and never copy the key 
 7. **Read the chain, not the labels.** Verification means reading the vault's own contracts; `--verify-only` does this. Logs and step names are not evidence.
 8. **Report faithfully.** If a check failed, show the failure. If a step was skipped, say so. Never mark something ✅ on data you did not fetch.
 9. **Results are not guarantees.** A clean dry-run, rehearsal or verification means the known checks passed. Say so plainly, and point the human to `DISCLAIMER.md` once at the start of a session.
-10. **Do not edit `contexts/` or `schema/` silently.** Propose the change with its source and ask, unless the human explicitly asked you to make it.
+10. **Do not edit `contexts/` or `schema/` silently.** Propose the change with its source and ask, unless the human explicitly asked you to make it. Never write an IPOR contract address into a context: name its ipor-abi key, or add a `pins` entry with the reason the registries are not enough.
 
 ## 5. Autonomy boundary
 
@@ -116,3 +118,38 @@ Each of these produced a check that now exists. Know why.
 ## 9. When you are unsure
 
 Stop and ask. A blocked deployment costs an hour. A mis-deployed vault can cost the human their capital and their reputation.
+
+## 10. Map of the repository and related sources
+
+This section replaces a separate `llms.txt`: this file is the entry point.
+
+**Manual (`docs/`)**
+
+| File | Contents |
+|---|---|
+| `README.md` | What the toolkit does, the three modes, the quick start, what has been verified |
+| `docs/01-concepts.md` | Vaults, fuses, substrates, roles, one-way switches, lifecycle, trust order |
+| `docs/02-setup.md` | Prerequisites, `.env`, anvil fork, checking the installation |
+| `docs/03-strategy-json.md` | Field reference for `strategies/<name>.json` and the chain contexts |
+| `docs/04-deploy.md` | Dry-run, fork rehearsal, live broadcast, vault sets, verification, recovery |
+| `docs/05-human-in-the-loop.md` | What only the human decides and how to ask |
+| `docs/06-troubleshooting.md` | Symptoms, causes, fixes |
+| `docs/07-resources.md` | Public sources and common on-chain reads |
+| `docs/08-glossary.md` | Terms |
+| `docs/09-using-with-your-agent.md` | How each agent tool finds this file, a starter prompt |
+| `docs/10-hardening.md` | Role handover, delays, the deployer's renounce, front-end listing |
+| `DISCLAIMER.md`, `CONTRIBUTING.md`, `SECURITY.md` | Terms of use; adding chains, fuses and steps; reporting a vulnerability |
+
+**Reference files**
+
+| Path | Contents |
+|---|---|
+| `strategies/example-usdc-aave-base.json` + `.md` | Placeholder single-venue USDC vault on Base; every address is an anvil test account, so the pipeline refuses it on a live chain |
+| `strategies/example-wsteth-usdc-loop-base.json` + `.md` | Placeholder leveraged wstETH/USDC loop on Morpho Blue (Base): collateral, borrow and flash-loan fuses, the callback handler, the legacy swapper, scheduled withdrawals, and what the alpha does after deployment |
+| `rehearsals/` | The SDK fuse actions the fork rehearsal runs for each example |
+| `templates/strategy-spec.md` | The shape of a human spec, with provenance tags |
+| `schema/strategy.schema.json` | Validation schema for strategy files |
+| `contexts/ipor-abi/` | Vendored ipor-abi snapshots: every IPOR contract address the pipeline uses (`make ipor-abi` refreshes them) |
+| `contexts/<chain>.json` | Optional per-chain overrides: public RPC, pins with reasons, aliases, external addresses, tokens; `make check-context CONTEXT=<chain>` checks a chain |
+
+**Outside this repository:** `docs/07-resources.md` lists the public sources (docs.ipor.io, ipor-abi, the SDK, its deploy skill and worked examples, the MCP server, the alpha example bot) and the on-chain reads you will do often.

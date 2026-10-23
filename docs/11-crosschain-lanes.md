@@ -88,4 +88,4 @@ Manual execution (the ticket, or any message stuck in state 0 or 3): take `encod
 
 ## SDK support
 
-`ipor-fusion` 3.7.0 (pinned here) and earlier encode the previous cross-chain message format (codec version 3, `Command` without `minExecutionGas`, supply fuse without `minDelivered`). Messages built with it will not decode on the deployed contracts. Build cross-chain fuse data with an SDK release that supports the deployed format (planned for 4.0) before using this lane from scripts.
+`ipor-fusion` 3.7.0 (pinned here) and earlier encode the previous cross-chain message format (codec version 3, `Command` without `minExecutionGas`, supply fuse without `minDelivered`). Messages built with it will not decode on the deployed contracts. `ipor-fusion` 4.0.0 supports the deployed format (codec version 4, CCIP envelope 3) and its CCIP example targets the factory above; build cross-chain fuse data with 4.0.0 or later. Moving this repository to 4.0 is a breaking upgrade (`MIGRATION_4.md` in the SDK) and is not done yet.

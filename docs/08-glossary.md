@@ -6,13 +6,17 @@
 | **Alpha** | Whoever calls `execute([FuseAction…])` on the vault: a bot, a service, or a person. Holds `ALPHA_ROLE` (200). |
 | **Atomist** | The strategist who designs and governs the vault. Holds `ATOMIST_ROLE` (100). In this repo, "the human operator". |
 | **Balance fuse** | The fuse that reports the vault's position value in one market. Exactly one per market. |
+| **Big block** | A 30 M-gas HyperEVM block (about one per minute), used by accounts that opted in with `usingBigBlocks`. Small blocks hold 3 M gas. |
 | **Chain context** | The vendored `ipor-abi` snapshot for a chain (`contexts/ipor-abi/`), plus optional overrides in `contexts/<ctx>.json`: public RPC, pins, aliases, external addresses, tokens. |
 | **Contribution** | A fee that is burned, raising the remaining depositors' share price: request contribution and instant-withdraw contribution. Not revenue. |
+| **Cross-chain lane** | A hub vault on one chain holding positions in spoke vaults on another, over CCIP (market 54). See `docs/11-crosschain-lanes.md`. |
 | **DAO fee package** | The management/performance fee to the IPOR DAO, chosen by `dao_fee_package_index` at clone. Immutable. |
 | **Dependency (balance) graph** | Per-market list of markets whose balances must be refreshed together. Every balance-fuse market except the idle balance depends on `ERC20_VAULT_BALANCE` (7). Derived by the deployer, verified on-chain. |
 | **Deploy state** | `.deploy-state/<name>.json`: config hash, cloned addresses, completed steps, tx hashes. Makes the pipeline idempotent and resumable. |
+| **Dispatcher** | The cross-chain contract on the spoke chain that deposits into and redeems from spoke vaults for an executor. |
 | **Dry-run** | The pipeline without `--broadcast`: validates, previews the clone, prints every call, writes `.plan.json`, sends nothing, needs no key. |
 | **Execution delay / timelock** | Seconds a role holder must wait between `schedule` and `execute` on the AccessManager. |
+| **Executor** | The cross-chain contract on the hub chain that sends funds and commands for one hub vault and holds the attested remote balance. |
 | **Fork rehearsal** | Running the full `--broadcast` pipeline against an anvil fork of the target chain. Mandatory before a live deployment. |
 | **Fuse** | A stateless, immutable adapter contract the vault `delegatecall`s to act on one protocol. |
 | **FuseWhitelist** | The on-chain registry of approved fuses per market id. The authority for "is this fuse available on this chain". |

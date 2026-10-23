@@ -21,5 +21,14 @@
     "USDT0": "0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9",
     "USDG": "0x004B506865409877C9fA29bfb1ebA929984B9bbC",
     "EUL": "0x462cD9E0247b2e63831c3189aE738E5E9a5a4b64"
+  },
+  "external_addresses": {
+    "CcipRouter": {
+      "address": "0x141fa059441E0ca23ce184B6A78bafD2A517DdE8",
+      "source": "CCIP_ROUTER() of the CcipCrosschainFactory on this chain, read 2026-10-23; matches the Chainlink CCIP directory"
+    }
+  },
+  "markets": {
+    "CROSSCHAIN": 54
   }
 }

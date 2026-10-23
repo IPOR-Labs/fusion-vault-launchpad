@@ -61,6 +61,7 @@ To deploy your own vault:
 | [`docs/07-resources.md`](./docs/07-resources.md) | every public resource this repo relies on |
 | [`docs/08-glossary.md`](./docs/08-glossary.md) | terms |
 | [`docs/10-hardening.md`](./docs/10-hardening.md) | harden a rehearsed vault for production, and what the human must know before going live |
+| [`docs/11-crosschain-lanes.md`](./docs/11-crosschain-lanes.md) | connect a hub vault on Arbitrum to a spoke vault on HyperEVM over CCIP: contracts, setup order, gas rules |
 | [`docs/09-using-with-your-agent.md`](./docs/09-using-with-your-agent.md) | how Codex, Claude Code, Gemini, Cursor, Copilot, Windsurf, Grok, Aider and others pick up the instructions; a starter prompt |
 
 ## Verified so far

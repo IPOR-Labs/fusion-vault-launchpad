@@ -138,6 +138,7 @@ This section replaces a separate `llms.txt`: this file is the entry point.
 | `docs/08-glossary.md` | Terms |
 | `docs/09-using-with-your-agent.md` | How each agent tool finds this file, a starter prompt |
 | `docs/10-hardening.md` | Role handover, delays, the deployer's renounce, front-end listing |
+| `docs/11-crosschain-lanes.md` | Cross-chain lane (CCIP, Arbitrum ↔ HyperEVM): contracts, setup order, gas rules; manual for now |
 | `DISCLAIMER.md`, `CONTRIBUTING.md`, `SECURITY.md` | Terms of use; adding chains, fuses and steps; reporting a vulnerability |
 
 **Reference files**

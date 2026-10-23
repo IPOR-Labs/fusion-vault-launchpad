@@ -7,6 +7,13 @@
     "WHYPE": "0x5555555555555555555555555555555555555555"
   },
   "markets": {
-    "HYPERCORE": 47
+    "HYPERCORE": 55,
+    "CROSSCHAIN": 54
+  },
+  "external_addresses": {
+    "CcipRouter": {
+      "address": "0x13b3332b66389B1467CA6eBd6fa79775CCeF65ec",
+      "source": "CCIP_ROUTER() of the CcipCrosschainFactory on this chain, read 2026-10-23; matches the Chainlink CCIP directory"
+    }
   }
 }

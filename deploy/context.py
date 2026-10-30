@@ -47,7 +47,7 @@ PRE_HOOK_ALIASES = {
     "UpdateBalancesIgnoreDustPreHook": "PreHookUpdateBalancesIgnoreDust",
 }
 # Chain ids by context name, for tools that run without a strategy; a context file may set chain_id.
-CHAIN_IDS = {"mainnet-ethereum-fusion": 1, "base-fusion": 8453, "arbitrum-fusion": 42161, "hyperevm-fusion": 999}
+CHAIN_IDS = {"mainnet-ethereum-fusion": 1, "base-fusion": 8453, "arbitrum-fusion": 42161, "hyperevm-fusion": 999, "polygon-fusion": 137}
 
 
 def deployment_for(name: str) -> str:
@@ -126,6 +126,12 @@ class DeployContext:
         """Holder of the manager role on the shared PriceOracleMiddleware (fork impersonation only)."""
         key = self.contract_key("middleware_owner")
         return self.snapshot.get(key) if key else None
+
+    @property
+    def whitelist_gate_skipped(self) -> str | None:
+        """Reason the context skips the FuseWhitelist gate (`fuse_whitelist_gate.skip`), else None."""
+        g = self.raw.get("fuse_whitelist_gate") or {}
+        return g.get("reason") if g.get("skip") else None
 
     @property
     def fuse_whitelist(self) -> ChecksumAddress:

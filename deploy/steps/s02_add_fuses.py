@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from ipor_fusion.core.plasma_vault import PlasmaVault
 
-from deploy.whitelist import assert_whitelisted
+from deploy.whitelist import assert_fuses_have_code, assert_whitelisted
 
 NAME = "02_add_fuses"
 
@@ -17,8 +17,13 @@ def run(cfg, deploy_ctx, session, instance, state, broadcast):
     # chain's FuseWhitelist. The context map is only a cache of that registry and
     # has drifted before (typed swapper on market 12 is `removed`, Base
     # "AaveV3CollateralFuse" was a deprecated supply fuse — 2026-09-03).
-    print(f"[{NAME}] FuseWhitelist gate @ {deploy_ctx.fuse_whitelist}")
-    assert_whitelisted(cfg.raw, deploy_ctx, session.ctx.web3)
+    skipped = deploy_ctx.whitelist_gate_skipped
+    if skipped:
+        print(f"[{NAME}] ⚠️  FuseWhitelist gate SKIPPED by the context: {skipped}")
+        assert_fuses_have_code(cfg.raw, deploy_ctx, session.ctx.web3)
+    else:
+        print(f"[{NAME}] FuseWhitelist gate @ {deploy_ctx.fuse_whitelist}")
+        assert_whitelisted(cfg.raw, deploy_ctx, session.ctx.web3)
     vault = PlasmaVault(session.ctx, instance["plasma_vault"])
     addrs = [deploy_ctx.fuse(f["name"]) for f in cfg.raw["fuses"]]
     print(f"[{NAME}] adding {len(addrs)} fuses:")

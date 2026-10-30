@@ -118,3 +118,15 @@ def assert_whitelisted(cfg_raw: dict, deploy_ctx, w3, log=print) -> list[FuseSta
     if fails:
         raise RuntimeError("FuseWhitelist gate failed (" + f"{whitelist}): " + "; ".join(fails))
     return statuses
+
+
+def assert_fuses_have_code(cfg_raw: dict, deploy_ctx, w3, log=print) -> None:
+    """Fallback when the context skips the whitelist gate: every fuse address must have code."""
+    missing = []
+    for name, addr in config_fuse_refs(cfg_raw, deploy_ctx):
+        size = len(w3.eth.get_code(Web3.to_checksum_address(addr)))
+        log(f"    code {size:6d} B {name} -> {addr}")
+        if size == 0:
+            missing.append(f"{name} {addr}")
+    if missing:
+        raise RuntimeError("fuse addresses without code: " + "; ".join(missing))

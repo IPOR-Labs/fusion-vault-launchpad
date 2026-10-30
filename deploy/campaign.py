@@ -353,8 +353,7 @@ class CampaignRun:
         out = [str(strategy_path), "--broadcast", "--signer", a.signer, "--signer-port", str(a.signer_port)]
         if a.force_restart:
             out.append("--force-restart")
-        if getattr(a, "batch", False):
-            out.append("--batch")
+        out.append("--batch" if getattr(a, "batch", True) else "--no-batch")
         if a.i_understand_this_is_live:
             out.append("--i-understand-this-is-live")
         return out
@@ -457,7 +456,7 @@ def _parse_args(argv):
     p.add_argument("--signer-port", type=int, default=8789)
     p.add_argument("--signer-linger", type=float, default=30, metavar="MIN")
     p.add_argument("--force-restart", action="store_true", help="discard prior state for every vault and connection")
-    p.add_argument("--batch", action="store_true", help="sign each vault as one atomic batch in the wallet (see python -m deploy --help)")
+    p.add_argument("--batch", action=argparse.BooleanOptionalAction, default=True, help="sign each vault as a few multicall batches (default on; --no-batch signs every call separately; see python -m deploy --help)")
     p.add_argument("--i-understand-this-is-live", action="store_true")
     return p.parse_args(argv)
 

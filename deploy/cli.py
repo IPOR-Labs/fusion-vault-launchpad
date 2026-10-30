@@ -67,9 +67,10 @@ def _parse_args(argv):
     p.add_argument("--rehearse-only", action="store_true",
                    help="run only the rehearsal stage against the vault in the recorded state (local fork, needs RPC_URL and the fork key)")
     p.add_argument("--force-restart", action="store_true", help="discard prior state for this strategy")
-    p.add_argument("--batch", action="store_true",
-                   help="--signer browser: simulate the whole vault on a fork, then sign it as a few transactions: the clone and "
-                        "AccessManager.multicall batches carrying every setup call (no extra contract, no wallet batching needed)")
+    p.add_argument("--batch", action=argparse.BooleanOptionalAction, default=True,
+                   help="--signer browser (default on): simulate the whole vault on a fork, then sign it as a few transactions: the clone and "
+                        "AccessManager.multicall batches carrying every setup call (no extra contract, no wallet batching needed). "
+                        "--no-batch signs every call separately. Ignored for other signers and for resumed runs")
     p.add_argument("--i-understand-this-is-live", action="store_true",
                    help="required for --broadcast against any node that is not a local fork")
     # Kept for compatibility with older docs; same meaning as --i-understand-this-is-live.
@@ -137,7 +138,23 @@ def _grant_link_whitelist(session, state) -> None:
         print(f"[link] {vault} may now deposit into the child behind {am}: tx {rec.tx_hash}")
 
 
-def _run_batch(cfg, session, state_path: Path, signer, linger) -> bool:
+def batch_groups(txs: list[dict], all_steps: list[str]) -> list[dict]:
+    """Per packed transaction, the steps it carries. Steps that finished on the fork without a call
+    ride with the last transaction, since they are done once it is mined."""
+    groups, seen = [], set()
+    for tx in txs:
+        steps = []
+        for c in tx.get("calls", [tx]):
+            st = c.get("step")
+            if st and st not in seen:
+                seen.add(st); steps.append(st)
+        groups.append({"steps": steps, "creates_vault": any(st.startswith("01_clone") for st in steps)})
+    if groups:
+        groups[-1]["steps"] += [st for st in all_steps if st not in seen]
+    return groups
+
+
+def _run_batch(cfg, session, state_path: Path, signer, linger, resume: dict | None = None) -> bool:
     """Simulate this vault on a fork, then sign it as a few transactions: the clone, AccessManager
     multicalls carrying every vault setup call, and any call outside the vault (feed factories, a
     child's AccessManager). See deploy/batch.py."""
@@ -147,9 +164,18 @@ def _run_batch(cfg, session, state_path: Path, signer, linger) -> bool:
     rpc = os.environ.get("RPC_URL", "")
     link_grants = json.loads(os.environ.get("DEPLOY_LINK_GRANTS") or "[]")
     try:
-        sim = batch.simulate(Path(cfg.path).resolve(), rpc, str(session.signer), link_grants)
+        keep = {s["step"] for s in (resume or {}).get("completed_steps", [])}
+        if resume:
+            print(f"[batch] resuming: {len(keep)} step(s) already done live ({', '.join(sorted(keep))}); "
+                  "simulating and bundling only what is left")
+        signer.set_batch(None)
+        sim = batch.simulate(Path(cfg.path).resolve(), rpc, str(session.signer), link_grants,
+                             resume_state=state_path if resume else None)
         inst = sim.state.get("fusion_instance") or {}
-        if inst.get("plasma_vault") and w3.eth.get_code(Web3.to_checksum_address(inst["plasma_vault"])):
+        if not sim.calls:
+            print("[batch] nothing left to send")
+            return True
+        if not resume and inst.get("plasma_vault") and w3.eth.get_code(Web3.to_checksum_address(inst["plasma_vault"])):
             raise RuntimeError(f"the simulated vault address {inst['plasma_vault']} is already taken on the live chain; run again")
         am = inst["access_manager"].lower()
         managed = {v for k, v in inst.items() if k not in ("access_manager", "initial_owner") and v}
@@ -157,6 +183,7 @@ def _run_batch(cfg, session, state_path: Path, signer, linger) -> bool:
         limit = batch.batch_gas_limit(int(w3.eth.chain_id), int(w3.eth.get_block("latest")["gasLimit"]))
         txs = batch.access_manager_txs(sim.calls, inst["access_manager"], managed, limit)
         print(f"[batch] {len(sim.calls)} calls → {len(txs)} transaction(s): " + ", ".join(t["label"] for t in txs))
+        signer.set_batch(len(txs), batch_groups(txs, [r["step"] for r in sim.state.get("completed_steps", []) if r["step"] not in keep]))
         signer.step_started("batch")
         hashes_per_call: list[str] = []
         for i, tx in enumerate(txs, 1):
@@ -165,19 +192,25 @@ def _run_batch(cfg, session, state_path: Path, signer, linger) -> bool:
             if int(r["status"]) != 1:
                 raise RuntimeError(f"transaction {h} reverted; nothing in it took effect")
             hashes_per_call += [h] * len(tx["calls"])
-            if i == 1 and not w3.eth.get_code(Web3.to_checksum_address(inst["plasma_vault"])):
+            if i == 1 and not resume and not w3.eth.get_code(Web3.to_checksum_address(inst["plasma_vault"])):
                 raise RuntimeError(f"the clone was mined but the vault is not at the simulated address {inst['plasma_vault']}: "
                                    "the factory moved between simulation and signing. Nothing else was sent; re-run to simulate again.")
         state_path.parent.mkdir(parents=True, exist_ok=True)
-        state_path.write_text(json.dumps(batch.adopt(sim, hashes_per_call), indent=2))
+        state_path.write_text(json.dumps(batch.adopt(sim, hashes_per_call, keep_steps=keep), indent=2))
         by_step: dict[str, str] = {}
         for c, h in zip(sim.calls, hashes_per_call):
             by_step.setdefault(c.get("step") or "", h)
         for a in sim.actions:
+            if a.get("step") in keep:
+                continue
             act = Action(**{k: a.get(k) for k in Action.__slots__ if k in a})
             if act.executed:
                 act.tx_hash = by_step.get(act.step, act.tx_hash)
             session.recorder.actions.append(act)
+        # the page's step list: every step the batch carried (or completed on the fork without a call) is done
+        for rec in sim.state.get("completed_steps", []):
+            if rec["step"] not in keep:
+                signer.step_finished(rec["step"])
         signer.step_finished("batch")
         print(f"[batch] {len(sim.calls)} calls mined in {len(txs)} transaction(s)")
         return True
@@ -257,7 +290,9 @@ def main(argv=None, *, shared_signer=None, signer_meta=None):
     # The rehearsal signs transactions with the fork key, so it opens a broadcast-capable session.
     session = open_session(cfg, deploy_ctx, broadcast=args.broadcast or args.rehearse_only,
                            signer_mode=args.signer, signer_port=args.signer_port, browser_signer=shared_signer,
-                           signer_meta=_signer_meta(cfg, deploy_ctx, state_path, args.force_restart)
+                           signer_meta={**_signer_meta(cfg, deploy_ctx, state_path, args.force_restart),
+                                        "batch": bool(args.batch and not args.assign_alpha and not args.rehearse
+                                                      and args.from_step is None and args.only_step is None)}
                            if browser and shared_signer is None else None)
     signer = session.browser_signer
     session.options = {"assign_alpha": args.assign_alpha}
@@ -313,8 +348,10 @@ def main(argv=None, *, shared_signer=None, signer_meta=None):
     _install_capture(session)
     batched = False
     if (args.batch and signer and args.broadcast and not args.assign_alpha and not args.rehearse
-            and args.from_step is None and args.only_step is None and not state.fusion_instance):
-        batched = _run_batch(cfg, session, state_path, signer, linger)
+            and args.from_step is None and args.only_step is None):
+        # a fresh vault is batched from the clone; a resumed one bundles only the steps still missing
+        resume = json.loads(state_path.read_text()) if state.fusion_instance else None
+        batched = _run_batch(cfg, session, state_path, signer, linger, resume=resume)
         state = load_state(state_path, cfg.raw)
 
     if args.verify_only:

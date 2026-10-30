@@ -65,6 +65,17 @@
       "description": "Token symbol -> address (third-party ERC20s) for names a strategy uses; the address report checks symbol() on-chain.",
       "type": "object",
       "additionalProperties": {"$ref": "#/$defs/address"}
+    },
+    "fuse_whitelist_gate": {
+      "description": "Opt-out of the FuseWhitelist gate for a chain whose whitelist is not populated yet. Fuses then come from ipor-abi or pins; step 02 checks that each has code and verification downgrades the whitelist check to a warning.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["skip", "reason", "checked"],
+      "properties": {
+        "skip": {"type": "boolean"},
+        "reason": {"type": "string", "minLength": 10},
+        "checked": {"type": "string"}
+      }
     }
   }
 }

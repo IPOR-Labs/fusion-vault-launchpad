@@ -15,6 +15,18 @@ from deploy.fuses import plan_standard_fuse_upgrade
 NAME = "02b_standard_fuses"
 
 
+def _factory_injected(session, deploy_ctx) -> set[str]:
+    """The standard fuse a fresh clone carries: FusionFactory.getBurnRequestFeeFuseAddress()."""
+    from eth_utils import function_signature_to_4byte_selector
+    w3 = session.ctx.web3
+    try:
+        ret = w3.eth.call({"to": deploy_ctx.fusion_factory,
+                           "data": function_signature_to_4byte_selector("getBurnRequestFeeFuseAddress()")})
+        return {w3.to_checksum_address(ret[-20:])}
+    except Exception:
+        return set()
+
+
 def run(cfg, deploy_ctx, session, instance, state, broadcast):
     if state.has_step(NAME):
         print(f"[{NAME}] already done — skipping")
@@ -24,8 +36,8 @@ def run(cfg, deploy_ctx, session, instance, state, broadcast):
     try:
         on_chain = {str(a) for a in vault.get_fuses().call()}
     except Exception as ex:  # dry-run against a not-yet-deployed preview address
-        print(f"[{NAME}] vault not deployed yet (dry-run) — standard-fuse upgrade evaluated at broadcast")
-        on_chain = set()
+        on_chain = _factory_injected(session, deploy_ctx)
+        print(f"[{NAME}] vault not deployed yet (dry-run) — assuming the factory-injected standard fuses {sorted(on_chain)}")
     to_add, to_remove = plan_standard_fuse_upgrade(on_chain, standard)
     if not to_add and not to_remove:
         print(f"[{NAME}] standard fuses already at latest ({standard[-1] if standard else 'none'})")
@@ -33,7 +45,8 @@ def run(cfg, deploy_ctx, session, instance, state, broadcast):
         return
     print(f"[{NAME}] upgrade standard fuses: add={to_add} remove={to_remove}")
     rec = session.recorder.add(
-        NAME, action="upgradeStandardFuses", key=",".join(to_add + to_remove),
+        # key on the added fuse only: a dry-run cannot see which old fuse the factory injects
+        NAME, action="upgradeStandardFuses", key=",".join(to_add),
         target=instance["plasma_vault"], function="addFuses(address[]) / removeFuses(address[])",
         args={"add": to_add, "remove": to_remove},
     )

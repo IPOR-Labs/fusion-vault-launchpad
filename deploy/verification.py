@@ -92,7 +92,9 @@ def verify(cfg, deploy_ctx, session, instance, since_block: int | None = None) -
         wl_fail = [x for x in wl_fail if x not in std_dep]
         for x in std_dep: _warn(f"standard fuse pending upgrade (02b): {x}")
         for x in wl_warn: _warn(f"whitelist: {x}")
-        if wl_fail:
+        if wl_fail and deploy_ctx.whitelist_gate_skipped:
+            _warn(f"FuseWhitelist gate skipped by the context ({deploy_ctx.whitelist_gate_skipped}); not listed: {wl_fail}")
+        elif wl_fail:
             _fail(f"fuses NOT active on FuseWhitelist {deploy_ctx.fuse_whitelist}: {wl_fail}")
         else:
             _ok(f"all {len(statuses)} on-chain fuses listed on FuseWhitelist ({sum(s.state == 1 for s in statuses)} active)")

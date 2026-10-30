@@ -42,6 +42,8 @@ from deploy.plan import RunRecorder
 from deploy.state import hash_config
 from deploy.chain_guards import target_problem
 
+POA_CHAIN_IDS = {137}
+
 
 def _install_monotonic_nonce(ctx) -> None:
     """Make the signer's nonce monotonic across txs.
@@ -177,6 +179,12 @@ def open_session(cfg: StrategyConfig, context: DeployContext, broadcast: bool,
 
     if not ctx.web3.is_connected():
         raise RuntimeError(f"RPC not reachable: {rpc} (source={rpc_source})")
+
+    # Polygon (and other PoA-style chains) put more than 32 bytes in a block's extraData;
+    # web3 refuses to format such blocks without the PoA middleware.
+    if int(ctx.web3.eth.chain_id) in POA_CHAIN_IDS:
+        from web3.middleware import ExtraDataToPOAMiddleware
+        ctx.web3.middleware_onion.inject(ExtraDataToPOAMiddleware, layer=0)
 
     if broadcast and pk:
         _install_monotonic_nonce(ctx)

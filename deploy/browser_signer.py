@@ -368,6 +368,8 @@ class BrowserSigner:
         self._failed: dict | None = None
         self._outcome: dict | None = None           # set by finish(); the page switches to the result view
         self._closed = threading.Event()
+        # batch mode: {'total': n, or None until the fork simulation has packed the calls, 'sent': k}
+        self._batch: dict | None = {"total": None, "sent": 0} if (meta or {}).get("batch") else None
         self.disclaimer_accepted_at: str | None = None
         self.stage_id: str | None = None             # campaign stage being signed (None for a single vault)
         self._archive: dict[str, dict] = {}          # finished stages' boards, so the page can reopen them
@@ -415,6 +417,12 @@ class BrowserSigner:
         if self.stage_id is not None:
             self._archive[self.stage_id] = self.board()
 
+    def set_batch(self, total: int | None, groups: list[dict] | None = None) -> None:
+        """Batch mode: the counter shows packed transactions, not planned calls (None = still simulating).
+        `groups` lists, per packed transaction, the steps it carries, so the page groups steps by signature."""
+        with self._lock:
+            self._batch = {"total": total, "sent": (self._batch or {}).get("sent", 0), "groups": groups}
+
     def board(self) -> dict:
         raw = list(self._recorder.actions) if self._recorder is not None else []
         actions = [asdict(a) if is_dataclass(a) else dict(a) for a in raw]
@@ -432,6 +440,11 @@ class BrowserSigner:
             "instance": self._instance_source() or None, "outcome": outcome, "current": current,
             "stageId": self.stage_id, "kind": self.meta.get("kind", "vault"),
         })
+        with self._lock:
+            batch = dict(self._batch) if self._batch else None
+        if batch:
+            # in batch mode the wallet signs packed transactions, so count those (0 total = still simulating)
+            b.update({"total": batch["total"] or 0, "signed": batch["sent"], "batch": batch})
         return b
 
     # --- server --------------------------------------------------------------------
@@ -542,7 +555,11 @@ class BrowserSigner:
         pending = self.queue.submit(sanitize_for_wallet(built), label, stage=self.stage_id)
         pending.subcalls = [c.get("label") or c.get("to") for c in tx.get("calls", [])]
         self.log(f"[browser-signer] waiting for signature #{pending.id}: {label}")
-        return self.queue.wait(pending, self.sign_timeout_s)
+        h = self.queue.wait(pending, self.sign_timeout_s)
+        with self._lock:
+            if self._batch is not None:
+                self._batch["sent"] += 1
+        return h
 
     def send_batch(self, calls: list[dict], label: str) -> list[str]:
         """Hand a list of calls to the wallet as one atomic batch; returns the transaction hashes."""

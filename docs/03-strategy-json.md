@@ -50,7 +50,7 @@ Before a **live** broadcast, `deploy/guards.py` additionally refuses any configu
 | Key | Notes |
 |---|---|
 | `id` | numeric chain id (1, 8453, …) |
-| `context` | file stem under `contexts/`. Shipped: `mainnet-ethereum-fusion`, `base-fusion`, `arbitrum-fusion`, `hyperevm-fusion`. |
+| `context` | file stem under `contexts/`. Shipped: `mainnet-ethereum-fusion`, `base-fusion`, `arbitrum-fusion`, `hyperevm-fusion`, `polygon-fusion`. |
 
 ### `vault`
 
@@ -214,6 +214,7 @@ For an instant-only vault also add a `PauseFunctionPreHook` on `request(uint256)
 | `aliases{}` | a name strategies use → the ipor-abi key, when the name is neither a `FuseWhitelist` type nor an ipor-abi key (e.g. `MorphoFlashLoanBalanceFuse` → `BalanceFuseFlashLoanMorpho`) |
 | `external_addresses{}` | third-party contracts ipor-abi does not list, with their `source` (e.g. the Aave V3 pool) |
 | `tokens{}` | token symbol → address, for symbols a strategy uses (e.g. a rehearsal token holder) |
+| `fuse_whitelist_gate{}` | `{skip, reason, checked}`: skip the FuseWhitelist gate on a chain whose whitelist is not populated yet (Polygon at launch). Fuses then come from ipor-abi or pins; step 02 requires code at every fuse address and verification reports the unlisted fuses as a warning. Remove it once the chain's whitelist is filled |
 | `markets{}` | market ids the SDK's `IporFusionMarkets` does not know (e.g. `HYPERCORE` on HyperEVM) |
 | `contracts{}`, `standard_fuses[]`, `chain_id`, `ipor_abi_deployment` | rare overrides when a chain differs from the defaults above |
 

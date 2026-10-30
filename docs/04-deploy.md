@@ -175,6 +175,8 @@ DEPLOYER_ADDRESS=0xYourDeployer python -m deploy strategies/<name>.json --broadc
 # or: make sign STRATEGY=strategies/<name>.json RPC_URL=<your private RPC> DEPLOYER_ADDRESS=0xYourDeployer
 ```
 
+**Batch signing is the default.** With `--signer browser` the run first simulates the whole vault on a throwaway fork of the live RPC (needs anvil), then asks for the clone plus a few `AccessManager.multicall` transactions carrying every setup call, instead of one signature per call. Pass `--no-batch` to sign every call separately. Batching applies to a fresh vault only: a resumed run (existing state, `--from-step`, `--only-step`), `--assign-alpha` and `--rehearse` sign call by call.
+
 1. Before the first transaction the pipeline loads the dry-run plan for this exact strategy file (`.deploy-state/<name>.plan.json`); when it is missing or stale it runs the dry-run first. The page therefore lists **every signature of the run, per step**, before you sign anything.
 2. It starts a local page on `http://127.0.0.1:8789` (`--signer-port` changes it) and waits until a wallet connects with the right chain and, when `DEPLOYER_ADDRESS` is set, the right account. After connecting, the page shows a pre-flight: the deployer's gas balance and whether the factory holds a custom DAO fee package for this deployer. The package is fixed when the vault is cloned, so a missing custom package has to be fixed before the first signature.
    Before any wallet can connect, the page asks you to accept a short disclaimer: the page is provided as is, with no guarantee that it is fully reliable, and your wallet is the source of truth for what you sign. The pipeline refuses a wallet connection without it and logs the time of acceptance.

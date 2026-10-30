@@ -114,6 +114,11 @@
   .step-head h2{margin:0;font-size:20px;line-height:28px;font-weight:600;overflow-wrap:anywhere}
   .desc{color:var(--muted);margin:6px 0 18px;font-size:14px;line-height:21px;max-width:680px;overflow-wrap:anywhere}
   .chip{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 10px;border-radius:var(--pill);font-size:12px;font-weight:600;white-space:nowrap;border:1px solid var(--border);color:var(--muted)}
+  .success-hero{border:1px solid var(--success-line);background:var(--success-soft);border-radius:14px;padding:18px 20px;margin:4px 0 16px}
+  .success-hero .sh-title{font-size:18px;font-weight:600;color:var(--success)}
+  .success-hero .sh-addr{font-size:13px;margin:6px 0 14px;word-break:break-all}
+  .success-hero .sh-actions{display:flex;flex-wrap:wrap;gap:8px}
+  .success-hero .sh-note{font-size:12px;margin-top:10px;opacity:.8}
   .chip.done,.chip.signed,.chip.sent,.chip.earlier{background:var(--success-soft);border-color:var(--success-line);color:var(--success)}
   .chip.current,.chip.waiting,.chip.confirming,.chip.preparing{background:var(--primary-soft);border-color:var(--primary-line);color:var(--primary-text)}
   .chip.failed,.chip.rejected{background:var(--error-soft);border-color:var(--error-line);color:var(--error)}
@@ -244,7 +249,9 @@
   const TOKEN = "__SIGNER_TOKEN__";
   const CHAINS = {1:["Ethereum","https://etherscan.io","ETH"],8453:["Base","https://basescan.org","ETH"],42161:["Arbitrum","https://arbiscan.io","ETH"],
     999:["HyperEVM","https://hyperevmscan.io","HYPE"],43114:["Avalanche","https://snowtrace.io","AVAX"],130:["Unichain","https://uniscan.xyz","ETH"],
-    10:["Optimism","https://optimistic.etherscan.io","ETH"],747474:["Katana","https://katanascan.com","ETH"],9745:["Plasma","https://plasmascan.to","XPL"],31337:["Local anvil","","ETH"]};
+    10:["Optimism","https://optimistic.etherscan.io","ETH"],747474:["Katana","https://katanascan.com","ETH"],9745:["Plasma","https://plasmascan.to","XPL"],137:["Polygon","https://polygonscan.com","POL"],31337:["Local anvil","","ETH"]};
+  // chains the IPOR app lists vaults on: https://app.ipor.io/fusion/<slug>/<vault>
+  const APP_SLUGS = {1:"ethereum",8453:"base",42161:"arbitrum",747474:"katana"};
   const STEP_INFO = {
     "00_dry_run_report":["Plan summary","Prints the plan. Nothing to sign."],
     "01_clone":["Create the vault","The Fusion factory clones a PlasmaVault together with its access, price, fee, withdraw, rewards and context managers. This is the only transaction that creates contracts; every later one configures them. The DAO fee package is fixed here."],
@@ -470,6 +477,7 @@
     $("statusText").innerHTML = esc(ph.text) + (ph.hint ? `<span class="hint">${esc(ph.hint)}</span>` : "");
     $("statusAct").innerHTML = ph.k === "done" || ph.k === "stop" ? `<button class="btn sec" id="closeBtn" ${closed ? "disabled" : ""}>${closed ? "Session closed" : "Close signing session"}</button>` : "";
     if ($("closeBtn")) $("closeBtn").onclick = async () => { closed = true; await post("/api/close", {}).catch(() => {}); render(); };
+    if ($("finishBtn")) $("finishBtn").onclick = async () => { closed = true; await post("/api/close", {}).catch(() => {}); render(); };
     $("activity").hidden = !ph.work;
     tick();
   }
@@ -778,10 +786,22 @@
     if (o.failed_step) h += `<div class="note bad"><b>The run stopped in ${esc((STEP_INFO[o.failed_step] || [o.failed_step])[0])}.</b> ${esc(o.error)}<br>Run the same command again to resume. State: <span class="mono">${esc(o.state_file)}</span></div>`;
     if (o.link) h += `<div class="note ok">WHITELIST_ROLE granted to ${addrLink(o.link.parent, vb)} on ${addrLink(o.link.child_access_manager, vb)}${o.link.tx_hash ? " · " + txLink(o.link.tx_hash) : " (already granted)"}.</div>`;
     const v = o.verification;
+    const vaultAddr = (vb.instance || {}).plasma_vault, live = S && !S.board.isLocalFork;
+    if (o.ok && !link && vaultAddr) {
+      const chainName = (CHAINS[S.chainId] || ["chain " + S.chainId])[0], slug = live ? APP_SLUGS[S.chainId] : null, ex = explorer();
+      h += `<div class="success-hero"><div class="sh-title">✓ ${esc(((vb.vault || S.board.vault || {}).symbol) || "Vault")} is live on ${esc(chainName)} and verified</div>
+        <div class="sh-addr mono">${esc(vaultAddr)}</div>
+        <div class="sh-actions">
+          ${slug ? `<a class="btn" target="_blank" rel="noopener" href="https://app.ipor.io/fusion/${slug}/${esc(vaultAddr)}">Open in IPOR app</a>` : ""}
+          ${ex ? `<a class="btn sec" target="_blank" rel="noopener" href="${ex}/address/${esc(vaultAddr)}">View on explorer</a>` : ""}
+          <button class="btn sec" id="finishBtn" ${closed ? "disabled" : ""}>${closed ? "Session closed · you can close this tab" : "Finish"}</button>
+        </div>
+        ${live && !slug ? `<div class="sh-note">The IPOR app does not list ${esc(chainName)} vaults yet; listing needs the IPOR Labs team.</div>` : ""}</div>`;
+    }
     if (v) {
       h += `<div class="note ${v.fail.length ? "bad" : "ok"}"><b>${v.ok.length} checks passed · ${v.warn.length} warning${v.warn.length === 1 ? "" : "s"} · ${v.fail.length} failed</b></div>`;
       if (v.fail.length) h += `<ul class="list">${v.fail.map(x => `<li class="bad">✕ ${esc(x)}</li>`).join("")}</ul>`;
-      if (v.warn.length) h += `<ul class="list">${v.warn.map(x => `<li class="warn">! ${esc(x)}</li>`).join("")}</ul>`;
+      if (v.warn.length) h += `<details class="cd"><summary>Warnings (${v.warn.length})</summary><ul class="list">${v.warn.map(x => `<li class="warn">! ${esc(x)}</li>`).join("")}</ul></details>`;
       h += `<details class="cd"><summary>Passed checks (${v.ok.length})</summary><ul class="list">${v.ok.map(x => `<li>✓ ${esc(x)}</li>`).join("")}</ul></details>`;
     }
     const inst = vb.instance || {}, keys = link ? [] : Object.keys(inst).filter(k => isAddr(inst[k]));

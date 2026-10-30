@@ -77,8 +77,12 @@ def _wait_rpc(url: str, timeout_s: float = 60) -> None:
     raise RuntimeError(f"simulation fork at {url} did not start")
 
 
-def simulate(strategy: Path, live_rpc: str, deployer: str, link_grants: list[str], log=print) -> Simulation:
-    """Run the whole deployment of `strategy` on a fresh fork of `live_rpc` as `deployer`."""
+def simulate(strategy: Path, live_rpc: str, deployer: str, link_grants: list[str], log=print,
+             resume_state: Path | None = None) -> Simulation:
+    """Run the whole deployment of `strategy` on a fresh fork of `live_rpc` as `deployer`.
+
+    With `resume_state` (a live state file whose vault already exists), the fork run starts from that
+    state instead, so only the steps still missing are simulated and captured."""
     tmp = Path(tempfile.mkdtemp(prefix="fusion-batch-"))
     port = _free_port()
     fork = f"http://127.0.0.1:{port}"
@@ -89,10 +93,14 @@ def simulate(strategy: Path, live_rpc: str, deployer: str, link_grants: list[str
         env = {**os.environ, "RPC_URL": fork, "DEPLOYER_ADDRESS": deployer,
                "DEPLOY_STATE_PATH": str(tmp / "state.json"), "DEPLOY_CAPTURE": str(tmp / "calls.jsonl"),
                "DEPLOY_LINK_GRANTS": json.dumps(link_grants)}
+        if resume_state is not None:
+            shutil.copy(resume_state, tmp / "state.json")
         env.pop("DEPLOYER_PRIVATE_KEY", None)
         log(f"[batch] simulating {strategy.name} on a fork of the live chain ({fork}) …")
-        proc = subprocess.run([sys.executable, "-m", "deploy", str(strategy), "--broadcast", "--signer", "impersonate",
-                               "--force-restart", "--signer-linger", "0"], cwd=ROOT, env=env, capture_output=True, text=True)
+        cmd = [sys.executable, "-m", "deploy", str(strategy), "--broadcast", "--signer", "impersonate", "--signer-linger", "0"]
+        if resume_state is None:
+            cmd.append("--force-restart")
+        proc = subprocess.run(cmd, cwd=ROOT, env=env, capture_output=True, text=True)
         sim = Simulation(log=proc.stdout + proc.stderr)
         if proc.returncode != 0:
             tail = "\n".join(sim.log.strip().splitlines()[-15:])
@@ -156,14 +164,17 @@ def chunks(calls: list[dict], gas_limit: int) -> list[list[dict]]:
     return [c for c in out if c]
 
 
-def adopt(sim: Simulation, hashes_per_call: list[str]) -> dict:
+def adopt(sim: Simulation, hashes_per_call: list[str], keep_steps: set[str] | None = None) -> dict:
     """The live state file content: the simulation's state with every step's hashes replaced by the
-    live hash of the batch that carried its calls."""
+    live hash of the batch that carried its calls. Steps in `keep_steps` (already done live before a
+    resumed batch) keep the hashes they had."""
     by_label: dict[str, list[str]] = {}
     for c, h in zip(sim.calls, hashes_per_call):
         by_label.setdefault(c.get("step") or "", []).append(h)
     state = json.loads(json.dumps(sim.state))
     for rec in state.get("completed_steps", []):
+        if keep_steps and rec["step"] in keep_steps:
+            continue
         hs = by_label.get(rec["step"])
         rec["tx_hashes"] = sorted(set(hs), key=hs.index) if hs else []
     return state

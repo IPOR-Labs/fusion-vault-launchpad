@@ -138,6 +138,22 @@ def _grant_link_whitelist(session, state) -> None:
         print(f"[link] {vault} may now deposit into the child behind {am}: tx {rec.tx_hash}")
 
 
+def batch_groups(txs: list[dict], all_steps: list[str]) -> list[dict]:
+    """Per packed transaction, the steps it carries. Steps that finished on the fork without a call
+    ride with the last transaction, since they are done once it is mined."""
+    groups, seen = [], set()
+    for tx in txs:
+        steps = []
+        for c in tx.get("calls", [tx]):
+            st = c.get("step")
+            if st and st not in seen:
+                seen.add(st); steps.append(st)
+        groups.append({"steps": steps, "creates_vault": any(st.startswith("01_clone") for st in steps)})
+    if groups:
+        groups[-1]["steps"] += [st for st in all_steps if st not in seen]
+    return groups
+
+
 def _run_batch(cfg, session, state_path: Path, signer, linger, resume: dict | None = None) -> bool:
     """Simulate this vault on a fork, then sign it as a few transactions: the clone, AccessManager
     multicalls carrying every vault setup call, and any call outside the vault (feed factories, a
@@ -152,6 +168,7 @@ def _run_batch(cfg, session, state_path: Path, signer, linger, resume: dict | No
         if resume:
             print(f"[batch] resuming: {len(keep)} step(s) already done live ({', '.join(sorted(keep))}); "
                   "simulating and bundling only what is left")
+        signer.set_batch(None)
         sim = batch.simulate(Path(cfg.path).resolve(), rpc, str(session.signer), link_grants,
                              resume_state=state_path if resume else None)
         inst = sim.state.get("fusion_instance") or {}
@@ -166,6 +183,7 @@ def _run_batch(cfg, session, state_path: Path, signer, linger, resume: dict | No
         limit = batch.batch_gas_limit(int(w3.eth.chain_id), int(w3.eth.get_block("latest")["gasLimit"]))
         txs = batch.access_manager_txs(sim.calls, inst["access_manager"], managed, limit)
         print(f"[batch] {len(sim.calls)} calls → {len(txs)} transaction(s): " + ", ".join(t["label"] for t in txs))
+        signer.set_batch(len(txs), batch_groups(txs, [r["step"] for r in sim.state.get("completed_steps", []) if r["step"] not in keep]))
         signer.step_started("batch")
         hashes_per_call: list[str] = []
         for i, tx in enumerate(txs, 1):
@@ -272,7 +290,9 @@ def main(argv=None, *, shared_signer=None, signer_meta=None):
     # The rehearsal signs transactions with the fork key, so it opens a broadcast-capable session.
     session = open_session(cfg, deploy_ctx, broadcast=args.broadcast or args.rehearse_only,
                            signer_mode=args.signer, signer_port=args.signer_port, browser_signer=shared_signer,
-                           signer_meta=_signer_meta(cfg, deploy_ctx, state_path, args.force_restart)
+                           signer_meta={**_signer_meta(cfg, deploy_ctx, state_path, args.force_restart),
+                                        "batch": bool(args.batch and not args.assign_alpha and not args.rehearse
+                                                      and args.from_step is None and args.only_step is None)}
                            if browser and shared_signer is None else None)
     signer = session.browser_signer
     session.options = {"assign_alpha": args.assign_alpha}

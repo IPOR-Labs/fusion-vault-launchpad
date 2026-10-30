@@ -186,7 +186,15 @@
   .srow .t{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .srow .c{font-size:12px;color:var(--placeholder);font-variant-numeric:tabular-nums}
   .srow .you{font-size:9.5px;font-weight:600;letter-spacing:.04em;color:#fff;height:18px;line-height:18px;padding:0 7px;border-radius:var(--pill);background:linear-gradient(90deg,var(--primary),var(--primary-2))}
+  .steps-acc>summary{display:flex;align-items:center;gap:8px;list-style:none;cursor:pointer;padding:9px 8px;margin:0 -8px;border-radius:10px;font-size:13px;font-weight:500;color:var(--text)}
+  .steps-acc>summary::-webkit-details-marker{display:none}
+  .steps-acc>summary:hover{background:var(--hover)}
+  .steps-acc>summary .chev{margin-left:auto;color:var(--muted);transition:transform .15s}
+  .steps-acc[open]>summary .chev{transform:rotate(90deg)}
+  .steps-acc>summary .state{font-size:12px;font-weight:400;color:var(--muted)}
   .rail{position:relative}
+  .rail.grp{margin:0 0 4px 14px}
+  .steps-acc>summary .mk{z-index:1}
   .rail::before{content:"";position:absolute;left:9px;top:18px;bottom:18px;width:2px;background:var(--border-muted)}
   .mk{position:relative;z-index:1;flex:none;width:20px;height:20px;border-radius:50%;border:1px solid var(--border);background:var(--card);display:grid;place-items:center;font-size:10px;line-height:1;color:rgba(255,255,255,.45)}
   .mk.done,.mk.signed,.mk.sent,.mk.earlier{border-color:var(--primary);background:var(--primary);color:#fff}
@@ -289,7 +297,7 @@
   try { accepted = sessionStorage.getItem("fusion-signer-accepted") === TOKEN; } catch (e) {}
   const sentIds = new Set();
   let S = null, lastJson = "", busy = false, offline = false;
-  let selStage = null, selStep = null, follow = true;   // what is on screen; follow = track the run
+  let selStage = null, selStep = null, follow = true, groupOpen = {};   // what is on screen; follow = track the run
   let connectMsg = null, sendMsg = null, toastMsg = null, toastTimer = null, batchCapable = false, lastCaps = null;
   const preflight = {};
 
@@ -513,8 +521,9 @@
       : esc((S.board.vault || {}).name || C.name || "Vault") + ((S.board.vault || {}).symbol ? ` <span class="chip current" style="vertical-align:4px">${esc(S.board.vault.symbol)}</span>` : "");
     $("titleMeta").innerHTML = multi ? `${nVaults} vault${nVaults === 1 ? "" : "s"} to deploy · ${C.links.filter(l => l.executable && l.status !== "blocked").length} connection(s) to sign · ${C.vaults.length - nVaults} blocked`
       : `${esc(chainName(S.chainId))} · ${S.board.vault && S.board.vault.underlying ? addrLink(S.board.vault.underlying) : ""}`;
-    $("counterBig").innerHTML = tot ? `${sig} <span>of ${tot} signatures</span>` : `${sig} <span>signed</span>`;
-    $("counterSub").textContent = runDone() ? "All stages finished" : multi ? `Vault ${Math.min(doneVaults + 1, nVaults)} of ${nVaults}${st ? " · now " + stageName(st) : ""}` : `${Math.max(0, tot - sig)} left`;
+    const bt = S.board.batch, simulating = bt && !bt.total && !runDone();
+    $("counterBig").innerHTML = simulating ? `<span>Batched signing</span>` : tot ? `${sig} <span>of ${tot} signature${tot === 1 ? "" : "s"}</span>` : `${sig} <span>signed</span>`;
+    $("counterSub").textContent = runDone() ? "All stages finished" : simulating ? (S.connected ? "Simulating on a fork to bundle the calls…" : "Batched: the number of signatures appears once the wallet is connected") : bt ? `${Math.max(0, tot - sig)} left · batched (each transaction carries many calls)` : multi ? `Vault ${Math.min(doneVaults + 1, nVaults)} of ${nVaults}${st ? " · now " + stageName(st) : ""}` : `${Math.max(0, tot - sig)} left`;
     $("bar").style.width = (tot ? Math.round(100 * sig / tot) : 0) + "%";
 
     renderMap(C);
@@ -550,7 +559,7 @@
         ${v.id === cur && v.status === "current" ? '<span class="here">YOU ARE HERE</span>' : ""}
         <div class="top"><span class="ord">${v.status === "done" ? "✓" : v.status === "blocked" ? "–" : v.order}</span><span class="sym">${esc(v.symbol || v.id)}</span></div>
         <div class="nm"><span class="chain">${esc(chainName(v.chain))}</span> ${esc(v.name || v.id)}</div>
-        <div class="st"><span>${esc(stTxt)}</span><span>${v.status === "blocked" ? "" : `${v.signed}/${v.total}`}</span></div>
+        <div class="st"><span>${esc(stTxt)}</span><span>${v.status === "blocked" || !v.total ? "" : `${v.signed}/${v.total}`}</span></div>
         <div class="mini"><i style="width:${v.status === "blocked" ? 0 : pct}%"></i></div></button>`;
     };
     $("map").innerHTML = `<svg id="edges"></svg>` + cols.map(col => `<div class="col">${col.map(node).join("")}</div>`).join("") +
@@ -578,19 +587,55 @@
   }
   window.addEventListener("resize", () => S && drawEdges(campaign()));
 
+  // one group per wallet signature: the clone, then the transaction(s) that carry the setup calls
+  function signGroups(vb, rs, isCur){
+    const stepRows = rs.filter(r => r.step), bt = vb.batch, known = bt && bt.groups && bt.groups.length;
+    const defs = known ? bt.groups.map((g, i) => ({title: g.creates_vault ? "Create vault" : "Configuration", keys: [...g.steps], idx: i}))
+      : (() => { const clone = stepRows.filter(r => r.key.startsWith("01_clone")).map(r => r.key);
+                 return [{title: "Create vault", keys: clone}, {title: "Configuration", keys: stepRows.filter(r => !clone.includes(r.key)).map(r => r.key)}]; })();
+    let cfg = 0; defs.forEach(d => { if (d.title === "Configuration" && cfg++) d.title = "More configuration"; });
+    const assigned = new Set(defs.flatMap(d => d.keys));
+    stepRows.filter(r => !assigned.has(r.key)).forEach(r => defs[defs.length - 1].keys.push(r.key));
+    const FIN = ["done", "earlier", "not-needed", "skipped"];
+    return defs.map((d, i) => {
+      const items = d.keys.map(k => stepRows.find(r => r.key === k)).filter(Boolean);
+      let status = items.some(r => r.status === "failed") ? "failed"
+        : known && bt.total ? (i < bt.sent ? "done" : i === bt.sent && isCur && S.pending ? "current" : "upcoming")
+        : items.length && items.every(r => FIN.includes(r.status)) ? "done"
+        : items.some(r => r.here || r.status === "current" || FIN.includes(r.status)) ? "current" : "upcoming";
+      if (status !== "failed" && items.length && items.every(r => FIN.includes(r.status))) status = "done";
+      return {...d, key: "g" + i, items, status};
+    }).filter(g => g.items.length);
+  }
+  function stepRow(r, isCur, packed){
+    const glyph = r.status === "done" || r.status === "earlier" ? "✓" : r.status === "failed" ? "!" : "";
+    const acts = (r.key === selStep || (r.here && !packed)) && r.step ? `<ul class="sub-acts">${live(r.step).map(a => `<li><span class="mk ${a.status}">${SIGNED.has(a.status) ? "✓" : ""}</span><span class="t" title="${esc(a.action + (a.key ? " · " + keyLabel(a.key) : ""))}">${esc(a.action)}${a.key ? " · " + esc(keyLabel(a.key)) : ""}</span></li>`).join("")}</ul>` : "";
+    return `<button class="srow ${r.status} ${r.nav ? "nav" : ""} ${r.key === selStep ? "view" : ""}" data-step="${esc(r.key)}" ${r.nav ? "" : 'aria-disabled="true"'}>
+        <span class="mk ${r.status}">${glyph}</span><span class="t">${esc(r.title)}</span>${r.here && isCur && !packed && !r.inGroup ? '<span class="you">YOU ARE HERE</span>' : ""}</button>${acts}`;
+  }
   function renderSteps(vb, rs, isCur){
-    const st = stageOf(selStage), C = campaign();
+    const st = stageOf(selStage);
     const title = vb.kind === "link" ? `Connection · ${esc(stageName(st))}` : `Steps · ${esc((vb.vault || {}).symbol || selStage)}`;
     const packed = isCur && S.board.current === "batch";
-    const pm = packed && S.pending ? /^(\d+)\/(\d+)/.exec(S.pending.label || "") : null;
-    const sub = packed ? `Batched: every step below rides in ${pm ? pm[2] : "a few"} transaction(s)${pm ? ` · signing ${pm[1]} of ${pm[2]}` : ""}. Steps turn done when the batch is mined.`
-      : isCur ? (vb.kind === "link" ? "One signature on the child vault." : `${vb.signed} of ${vb.total} signed in this vault`) : "Finished · click a step to review it";
-    $("steps").innerHTML = `<h2>${title}</h2><div class="sub">${sub}</div><div class="rail">${rs.map(r => {
-      const glyph = r.status === "done" || r.status === "earlier" ? "✓" : r.status === "failed" ? "!" : "";
-      const acts = (r.key === selStep || r.here) && r.step ? `<ul class="sub-acts">${live(r.step).map(a => `<li><span class="mk ${a.status}">${SIGNED.has(a.status) ? "✓" : ""}</span><span class="t" title="${esc(a.action + (a.key ? " · " + keyLabel(a.key) : ""))}">${esc(a.action)}${a.key ? " · " + esc(keyLabel(a.key)) : ""}</span></li>`).join("")}</ul>` : "";
-      return `<button class="srow ${r.status} ${r.nav ? "nav" : ""} ${r.key === selStep ? "view" : ""}" data-step="${esc(r.key)}" ${r.nav ? "" : 'aria-disabled="true"'}>
-        <span class="mk ${r.status}">${glyph}</span><span class="t">${esc(r.title)}</span>${r.here && isCur && !packed ? '<span class="you">YOU ARE HERE</span>' : ""}<span class="c">${packed && r.status !== "done" ? "in batch" : esc(r.n)}</span></button>${acts}`;
-    }).join("")}</div>`;
+    const simulating = vb.batch && !vb.batch.total && !runDone();
+    if (vb.kind === "link") {
+      $("steps").innerHTML = `<h2>${title}</h2><div class="sub">${isCur ? "One signature on the child vault." : "Finished · click a step to review it"}</div><div class="rail">${rs.map(r => stepRow(r, isCur, packed)).join("")}</div>`;
+    } else {
+      const groups = signGroups(vb, rs, isCur);
+      const STATE = {done: "signed", current: isCur ? "signing now" : "in progress", failed: "failed", upcoming: "waiting"};
+      const sub = !isCur ? "Finished · open a group to review its steps"
+        : simulating ? "Bundling the calls on a fork; the groups firm up once that is done"
+        : "Each group is one signature in the wallet";
+      const grp = g => {
+        const open = g.key in groupOpen ? groupOpen[g.key] : (g.status === "current" || g.items.some(r => r.key === selStep));
+        const here = isCur && g.status === "current";
+        g.items.forEach(r => { r.inGroup = true; });
+        return `<details class="steps-acc" data-g="${g.key}" ${open ? "open" : ""}><summary><span class="mk ${g.status}">${g.status === "done" ? "✓" : g.status === "failed" ? "!" : ""}</span><span>${esc(g.title)}</span><span class="state">· ${STATE[g.status]}</span>${here ? '<span class="you">YOU ARE HERE</span>' : ""}<span class="chev">›</span></summary><div class="rail grp">${g.items.map(r => stepRow(r, isCur, packed)).join("")}</div></details>`;
+      };
+      const wallet = rs.find(r => r.key === "wallet"), verify = rs.find(r => r.key === "verify");
+      $("steps").innerHTML = `<h2>${title}</h2><div class="sub">${sub}</div><div class="rail">${wallet ? stepRow(wallet, isCur, false) : ""}${groups.map(grp).join("")}${verify ? stepRow(verify, isCur, false) : ""}</div>`;
+      $("steps").querySelectorAll("details[data-g]").forEach(el => el.querySelector("summary").onclick = () => { groupOpen[el.dataset.g] = !el.open; });
+    }
     $("steps").querySelectorAll(".srow.nav").forEach(el => el.onclick = () => { follow = false; selStep = el.dataset.step; render(); window.scrollTo({top:0, behavior:"smooth"}); });
   }
 
